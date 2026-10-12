@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>CodeLab Camera</title>
+<style>
+:root{--bg:#F3F6F4;--card:#fff;--ink:#0E1B2C;--mute:#4B5B6B;--acc:#0B7F6D;--accT:#fff;--line:#D5DDD9;--rec:#C62828;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0B1420;--card:#13202F;--ink:#EAF1EE;--mute:#9DB0BD;--acc:#2CC4AC;--accT:#06231E;--line:#25384B;--rec:#EF5350}}
+:root[data-theme="dark"]{--bg:#0B1420;--card:#13202F;--ink:#EAF1EE;--mute:#9DB0BD;--acc:#2CC4AC;--accT:#06231E;--line:#25384B;--rec:#EF5350}
+*{box-sizing:border-box}html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:960px;margin:0 auto;padding:20px 16px 48px;display:grid;gap:16px}
+h1{font-size:26px;margin:0}h1 span{color:var(--acc)}h2{font-size:18px;margin:0 0 10px}
+p{margin:0;color:var(--mute)}
+section{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px}
+.stage{position:relative;background:#000;border-radius:10px;overflow:hidden;aspect-ratio:16/9}
+video{width:100%;height:100%;object-fit:cover;background:#000;display:block}
+#me{transform:scaleX(-1)}
+.badge{position:absolute;top:10px;left:10px;background:var(--rec);color:#fff;padding:3px 10px;border-radius:99px;font-size:14px;display:none}
+.row{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px;align-items:center}
+button,input{font:inherit;min-height:44px;border-radius:10px;border:1px solid var(--line);padding:0 16px;background:var(--card);color:var(--ink)}
+button{cursor:pointer;font-weight:600}button.p{background:var(--acc);color:var(--accT);border-color:var(--acc)}button.r{background:var(--rec);color:#fff;border-color:var(--rec)}
+button:disabled{opacity:.45;cursor:not-allowed}
+input{width:170px}
+#msg{min-height:22px;color:var(--mute);font-size:15px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;margin-top:12px}
+.tile{position:relative}.tile .stage{aspect-ratio:4/3}.tile b{position:absolute;left:8px;bottom:8px;background:rgba(0,0,0,.6);color:#fff;font-size:13px;padding:2px 8px;border-radius:99px;font-weight:500}
+.item{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;padding:10px 0;border-top:1px solid var(--line)}
+.item div{display:flex;gap:8px;flex-wrap:wrap}
+</style>
+</head>
+<body>
+<main>
+<header><h1>Code<span>Lab</span> Camera</h1><p>Record selfie videos, watch them later, or meet live.</p></header>
+
+<section>
+<h2>Camera</h2>
+<div class="stage"><video id="me" autoplay muted playsinline></video><span class="badge" id="badge">REC 00:00</span></div>
+<div class="row">
+<button class="p" id="open">Open camera</button>
+<button class="r" id="rec" disabled>Start recording</button>
+<button id="close" disabled>Turn off</button>
+</div>
+<div id="msg" role="status"></div>
+</section>
+
+<section>
+<h2>Live meeting</h2>
+<p>Share the same code with others who open this page. Everyone who joins sees everyone else.</p>
+<div class="row">
+<input id="code" aria-label="Meeting code" value="" maxlength="24">
+<button class="p" id="join">Join meeting</button>
+<button id="leave" disabled>Leave</button>
+</div>
+<div class="grid" id="grid"></div>
+</section>
+
+<section>
+<h2>Saved videos</h2>
+<div class="stage" id="pstage" style="display:none"><video id="player" controls playsinline></video></div>
+<div id="list"><p>Nothing saved yet. Recorded videos are kept in this browser so you can watch them later.</p></div>
+</section>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+const me=Math.random().toString(36).slice(2,10);
+let stream,rec,chunks=[],t0,timer,room,code,peers={},dl;
+const say=t=>$("msg").textContent=t;
+
+/* ---------- camera ---------- */
+async function openCam(){
+  if(stream)return true;
+  try{
+    stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"user",width:{ideal:1280},height:{ideal:720}},audio:true});
+    $("me").srcObject=stream;$("rec").disabled=false;$("close").disabled=false;$("open").disabled=true;say("Camera is on.");return true;
+  }catch(e){say("Could not open the camera: allow camera and microphone access in your browser, and make sure no other app is using it.");return false}
+}
+function closeCam(){
+  if(rec&&rec.state!=="inactive")rec.stop();
+  leave();
+  if(stream)stream.getTracks().forEach(t=>t.stop());
+  stream=null;$("me").srcObject=null;$("rec").disabled=true;$("close").disabled=true;$("open").disabled=false;say("Camera is off.");
+}
+$("open").onclick=openCam;$("close").onclick=closeCam;
+
+/* ---------- recording + saving ---------- */
+function idb(){return new Promise((res,rej)=>{const r=indexedDB.open("codelab-camera",1);r.onupgradeneeded=()=>r.result.createObjectStore("v",{keyPath:"id"});r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
+async function tx(mode,fn){const d=await idb();return new Promise((res,rej)=>{const t=d.transaction("v",mode);const q=fn(t.objectStore("v"));t.oncomplete=()=>res(q&&q.result);t.onerror=()=>rej(t.error)})}
+$("rec").onclick=()=>{
+  if(rec&&rec.state==="recording"){rec.stop();return}
+  const types=["video/webm;codecs=vp9,opus","video/webm","video/mp4"];
+  const mt=types.find(t=>window.MediaRecorder&&MediaRecorder.isTypeSupported(t));
+  if(!mt){say("This browser cannot record video.");return}
+  chunks=[];rec=new MediaRecorder(stream,{mimeType:mt});
+  rec.ondataavailable=e=>e.data.size&&chunks.push(e.data);
+  rec.onstop=async()=>{
+    clearInterval(timer);$("badge").style.display="none";$("rec").textContent="Start recording";
+    const blob=new Blob(chunks,{type:mt.split(";")[0]});
+    const ext=mt.includes("mp4")?"mp4":"webm";
+    try{await tx("readwrite",s=>s.put({id:Date.now(),name:"Selfie "+new Date().toLocaleString(),ext,blob}));say("Saved. Find it under Saved videos.")}
+    catch(e){say("Could not save in this browser.")}
+    renderList();
+  };
+  rec.start(1000);t0=Date.now();$("badge").style.display="block";$("rec").textContent="Stop and save";
+  timer=setInterval(()=>{const s=Math.floor((Date.now()-t0)/1000);$("badge").textContent="REC "+String(Math.floor(s/60)).padStart(2,"0")+":"+String(s%60).padStart(2,"0")},500);
+};
+async function renderList(){
+  let items=[];try{items=await tx("readonly",s=>s.getAll())}catch(e){}
+  const box=$("list");box.textContent="";
+  if(!items.length){const p=document.createElement("p");p.textContent="Nothing saved yet. Recorded videos are kept in this browser so you can watch them later.";box.append(p);return}
+  items.sort((a,b)=>b.id-a.id).forEach(v=>{
+    const r=document.createElement("div");r.className="item";
+    const n=document.createElement("span");n.textContent=v.name;
+    const b=document.createElement("div");
+    const w=document.createElement("button");w.textContent="Watch";w.className="p";
+    w.onclick=()=>{$("pstage").style.display="block";$("player").src=URL.createObjectURL(v.blob);$("player").play().catch(()=>{});$("pstage").scrollIntoView({behavior:"smooth"})};
+    b.append(w);
+    if(dl){const d=document.createElement("button");d.textContent="Download";d.onclick=async()=>{try{await dl.save({filename:"codelab-"+v.id+"."+v.ext,data:new Uint8Array(await v.blob.arrayBuffer())})}catch(e){say("Download was not completed.")}};b.append(d)}
+    const x=document.createElement("button");x.textContent="Delete";x.onclick=async()=>{await tx("readwrite",s=>s.delete(v.id));renderList()};b.append(x);
+    r.append(n,b);box.append(r);
+  });
+}
+
+/* ---------- live meeting (WebRTC, signalled through the room) ---------- */
+async function pack(o){const s=JSON.stringify(o);if(!window.CompressionStream)return s;const z=new Blob([s]).stream().pipeThrough(new CompressionStream("deflate-raw"));const b=new Uint8Array(await new Response(z).arrayBuffer());let x="";b.forEach(c=>x+=String.fromCharCode(c));return "z"+btoa(x)}
+async function unpack(s){if(s[0]!=="z")return JSON.parse(s);const b=Uint8Array.from(atob(s.slice(1)),c=>c.charCodeAt(0));const z=new Blob([b]).stream().pipeThrough(new DecompressionStream("deflate-raw"));return JSON.parse(await new Response(z).text())}
+const send=m=>room&&room.emit("sig",Object.assign({c:code,f:me},m));
+function tile(id){
+  const t=document.createElement("div");t.className="tile";
+  const s=document.createElement("div");s.className="stage";const v=document.createElement("video");v.autoplay=true;v.playsInline=true;s.append(v);
+  const l=document.createElement("b");l.textContent="Guest "+id.slice(0,3);t.append(s,l);$("grid").append(t);return{t,v};
+}
+function drop(id){const p=peers[id];if(!p)return;try{p.pc.close()}catch(e){}p.t.remove();delete peers[id]}
+async function peer(id,init){
+  if(peers[id])drop(id);
+  const pc=new RTCPeerConnection({iceServers:[{urls:"stun:stun.l.google.com:19302"}]});
+  const {t,v}=tile(id);const p=peers[id]={pc,t,q:[]};
+  stream.getTracks().forEach(k=>pc.addTrack(k,stream));
+  pc.ontrack=e=>{v.srcObject=e.streams[0]};
+  pc.onicecandidate=async e=>{if(e.candidate)send({t:"i",to:id,p:await pack(e.candidate.toJSON())})};
+  pc.onconnectionstatechange=()=>{if(pc.connectionState==="failed"||pc.connectionState==="closed")drop(id)};
+  if(init){await pc.setLocalDescription(await pc.createOffer());send({t:"o",to:id,p:await pack(pc.localDescription.toJSON())})}
+  return p;
+}
+async function onSig(m){
+  const d=m.data;if(!d||m.isMe||!code||d.c!==code||d.f===me)return;
+  try{
+    if(d.t==="hi"){send({t:"yo",to:d.f});if(me<d.f)await peer(d.f,true);return}
+    if(d.to!==me)return;
+    if(d.t==="yo"){if(me<d.f)await peer(d.f,true);return}
+    if(d.t==="bye"){drop(d.f);return}
+    const x=await unpack(d.p);
+    if(d.t==="o"){const p=await peer(d.f,false);await p.pc.setRemoteDescription(x);await p.pc.setLocalDescription(await p.pc.createAnswer());send({t:"a",to:d.f,p:await pack(p.pc.localDescription.toJSON())});p.q.splice(0).forEach(c=>p.pc.addIceCandidate(c))}
+    else if(d.t==="a"&&peers[d.f]){const p=peers[d.f];await p.pc.setRemoteDescription(x);p.q.splice(0).forEach(c=>p.pc.addIceCandidate(c))}
+    else if(d.t==="i"&&peers[d.f]){const p=peers[d.f];p.pc.remoteDescription?p.pc.addIceCandidate(x):p.q.push(x)}
+  }catch(e){}
+}
+$("join").onclick=async()=>{
+  if(!room){say("Live meetings are only available when this page is opened in claude.ai by someone with access to it.");return}
+  code=$("code").value.trim();if(!code){say("Enter a meeting code first.");return}
+  if(!await openCam())return;
+  $("join").disabled=true;$("leave").disabled=false;say("In meeting “"+code+"”. Waiting for others to join…");
+  send({t:"hi"});
+};
+function leave(){if(!code)return;send({t:"bye"});Object.keys(peers).forEach(drop);code=null;$("join").disabled=false;$("leave").disabled=true}
+$("leave").onclick=()=>{leave();say("You left the meeting.")};
+window.addEventListener("pagehide",leave);
+
+/* ---------- start ---------- */
+$("code").value="lab-"+Math.random().toString(36).slice(2,6);
+if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){say("This browser does not support camera access.");$("open").disabled=true}
+renderList();
+(async()=>{
+  try{room=await window.claude.use("room");if(room)room.on("sig",onSig)}catch(e){room=null}
+  try{dl=await window.claude.use("downloads");renderList()}catch(e){dl=null}
+})();
+</script>
+</body>
+</html>

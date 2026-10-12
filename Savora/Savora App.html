@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Savora - Order Food Online</title>
+    <meta name="description"
+        content="Savora Eatery - order Nigerian food online, track your order live, and earn loyalty points.">
+    <link rel="icon"
+        href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8D%9B%3C/text%3E%3C/svg%3E">
+    <!--
+=========================== FIREBASE SETUP ===========================
+1. Firebase console > create project > add Web app > paste config below.
+2. Build > Authentication > enable Email/Password AND Google.
+3. Build > Firestore > create database, then paste the RULES below (Rules tab), then Publish.
+4. IMPORTANT: create document  meta/admins  with an int64 field  count = 0
+   (Firestore > Start collection "meta" > document id "admins").
+5. Host over https (Firebase Hosting, Netlify...) - not file://. Add your domain
+   under Authentication > Settings > Authorized domains.
+
+--- FIRESTORE RULES ---
+rules_version = '2';
+service cloud.firestore { match /databases/{d}/documents {
+  function me(){ return get(/databases/$(d)/documents/users/$(request.auth.uid)).data; }
+  function isAdmin(){ return request.auth != null && me().role == 'admin'; }
+  function isStaff(){ return request.auth != null && (me().role == 'staff' || me().role == 'admin'); }
+
+  match /meta/admins {
+    allow read: if true;
+    allow update: if request.auth != null
+      && !exists(/databases/$(d)/documents/users/$(request.auth.uid))
+      && getAfter(/databases/$(d)/documents/users/$(request.auth.uid)).data.role == 'admin'
+      && resource.data.count < 2
+      && request.resource.data.count == resource.data.count + 1;
+  }
+  match /users/{u} {
+    allow create: if request.auth.uid == u && request.resource.data.role in ['customer','staff','admin']
+      && (request.resource.data.role != 'admin'
+          || getAfter(/databases/$(d)/documents/meta/admins).data.count == get(/databases/$(d)/documents/meta/admins).data.count + 1);
+    allow read: if request.auth.uid == u || isStaff();
+    allow update: if (request.auth.uid == u && request.resource.data.role == resource.data.role && request.resource.data.active == resource.data.active)
+      || (isAdmin() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['active','points']));
+  }
+  match /menu/{m} { allow read: if true; allow create, update, delete: if isStaff(); }
+  match /orders/{o} {
+    allow create: if request.auth != null && request.resource.data.uid == request.auth.uid;
+    allow read: if request.auth != null && (resource.data.uid == request.auth.uid || isStaff());
+    allow update: if isStaff() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','updatedAt']);
+  }
+  match /reviews/{r} { allow read: if true;
+    allow create: if request.auth != null && request.resource.data.uid == request.auth.uid; }
+  match /announcements/{n} { allow read: if true; allow create: if isAdmin(); }
+  match /log/{l} { allow create: if request.auth != null && request.resource.data.uid == request.auth.uid;
+    allow read: if isAdmin(); }
+}}
+NOTE: the Paystack "paid" flag is set client-side for this demo. For real money,
+verify the reference in a Cloud Function before trusting an order as paid.
+====================================================================
+-->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.12.4/dist/sweetalert2.all.min.js"></script>
+    <script src="https://js.paystack.co/v1/inline.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            box-sizing: border-box;
+            padding-top: env(safe-area-inset-top, 0px);
+            padding-bottom: env(safe-area-inset-bottom, 0px)
+        }
+
+        html,
+        body {
+            background: #0d0a08
+        }
+
+        body {
+            font-family: 'Space Grotesk', system-ui, sans-serif;
+            color: #fff
+        }
+
+        .inp {
+            width: 100%;
+            padding: .75rem;
+            border-radius: .75rem;
+            background: rgba(0, 0, 0, .5);
+            border: 1px solid rgba(255, 255, 255, .1);
+            margin-bottom: .75rem;
+            color: #fff
+        }
+
+        .card {
+            border: 1px solid rgba(255, 255, 255, .1);
+            border-radius: 1.5rem;
+            padding: 1.5rem
+        }
+
+        .btn {
+            padding: .6rem 1.2rem;
+            border-radius: 9999px;
+            font-weight: 600;
+            background: #f97316
+        }
+
+        .btn2 {
+            padding: .5rem 1rem;
+            border-radius: 9999px;
+            border: 1px solid rgba(255, 255, 255, .2)
+        }
+
+        .swal2-popup {
+            background: #1a1512 !important;
+            color: #fff !important
+        }
+
+        .swal2-html-container,
+        .swal2-title {
+            color: #fff !important
+        }
+
+        #offlineOverlay {
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            background: #0d0a08;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 2rem
+        }
+
+        #offlineOverlay.show {
+            display: flex
+        }
+
+        .spinner {
+            width: 32px;
+            height: 32px;
+            border: 3px solid rgb(238, 236, 236);
+            border-top-color: #ff0000;
+            border-top-width: 3px;
+            border-radius: 50%;
+            animation: spin 2s linear infinite;
+            background-color: rgb(20, 20, 20);
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg)
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div id="offlineOverlay">
+        <div class="spinner" style="width:60px;height:60px;margin-bottom:1.5rem;"></div>
+        <h2 style="font-size:1.5rem;font-weight:700;">No internet connection</h2>
+        <p style="color:rgba(255,255,255,.6);margin-top:.5rem;">Reconnect to keep ordering.</p><button
+            onclick="location.reload()" class="btn" style="margin-top:1.5rem;">Try again</button>
+    </div>
+
+    <nav id="nav"
+        class="flex justify-between items-center p-4 md:p-6 border-b border-white/10 sticky top-0 bg-[#0d0a08] z-40">
+    </nav>
+    <main id="main"></main>
+
+    <!-- CART DRAWER -->
+    <div id="cartDrawer" class="fixed inset-0 bg-black/80 hidden items-stretch justify-end z-50">
+        <div class="bg-[#15100c] w-full max-w-md h-full p-6 overflow-y-auto">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold">Your cart</h3><button onclick="closeCart()" class="text-2xl">×</button>
+            </div>
+            <div id="cartItems" class="space-y-3 mb-4"></div>
+            <div id="cartCheckout"></div>
+        </div>
+    </div>
+
+    <div id="authModal" class="fixed inset-0 bg-black/80 hidden items-center justify-center z-50 p-4">
+        <div class="bg-[#15100c] border border-white/10 rounded-3xl p-8 w-full max-w-md max-h-[95vh] overflow-y-auto">
+            <div class="flex justify-between mb-4">
+                <h3 id="mTitle" class="text-2xl font-bold"></h3><button onclick="closeAuth()"
+                    class="text-2xl">×</button>
+            </div>
+            <div id="roleRow" class="flex bg-black/50 rounded-full p-1 mb-4 text-sm"></div>
+            <input id="a_name" class="inp" placeholder="Full name">
+            <input id="a_email" type="email" class="inp" placeholder="Email">
+            <input id="a_pw" type="password" class="inp" placeholder="Password (min 6 chars)">
+            <input id="a_code" class="inp" placeholder="Staff / admin access code">
+            <button onclick="auth()" id="a_btn" class="btn w-full"></button>
+            <div class="flex items-center gap-3 my-3">
+                <div class="flex-1 h-px bg-white/10"></div><span class="text-xs text-white/40">or</span>
+                <div class="flex-1 h-px bg-white/10"></div>
+            </div>
+            <button onclick="googleAuth()" class="btn2 w-full flex items-center justify-center gap-2">
+                <svg width="18" height="18" viewBox="0 0 18 18">
+                    <path fill="#4285F4"
+                        d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84c-.21 1.13-.84 2.09-1.8 2.73v2.27h2.91c1.7-1.57 2.69-3.88 2.69-6.64z" />
+                    <path fill="#34A853"
+                        d="M9 18c2.43 0 4.47-.81 5.96-2.18l-2.91-2.27c-.81.54-1.84.86-3.05.86-2.35 0-4.34-1.59-5.05-3.72H.96v2.34C2.44 15.98 5.48 18 9 18z" />
+                    <path fill="#FBBC05"
+                        d="M3.95 10.69A5.4 5.4 0 013.68 9c0-.59.1-1.16.27-1.69V4.97H.96A9 9 0 000 9c0 1.45.35 2.83.96 4.03l2.99-2.34z" />
+                    <path fill="#EA4335"
+                        d="M9 3.58c1.32 0 2.51.46 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0 5.48 0 2.44 2.02.96 4.97l2.99 2.34C4.66 5.17 6.65 3.58 9 3.58z" />
+                </svg>
+                Continue with Google
+            </button>
+            <p id="a_err" class="text-red-400 text-sm mt-3 hidden"></p>
+            <p class="text-center mt-2"><a href="#" onclick="event.preventDefault();resetPw()"
+                    class="text-xs text-white/40">Forgot password?</a></p>
+            <p class="text-white/40 text-sm mt-3 text-center"><a href="#" id="a_sw" class="text-orange-400"></a></p>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, sendPasswordResetEmail, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, addDoc, updateDoc, increment, collection, query, where, orderBy, limit, onSnapshot, runTransaction, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+        // ===== CONFIG =====
+        const firebaseConfig = {
+            apiKey: "AIzaSyDccGpdy99cbrgLPvBIADaq1fzZZ7g8pRw",
+            authDomain: "savora-2eb7a.firebaseapp.com",
+            projectId: "savora-2eb7a",
+            storageBucket: "savora-2eb7a.firebasestorage.app",
+            messagingSenderId: "776943001868",
+            appId: "1:776943001868:web:696c63ae004988fc5f6929"
+        };
+
+        const MAX_ADMINS = 2, ADMIN_CODE = 'SAVORA-ADMIN', STAFF_CODE = 'SAVORA-STAFF';
+        const DELIVERY_FEE = 1000, POINTS_PER_NAIRA = 100; // 1 point per ₦100 spent
+        const CATEGORIES = ['Rice & Swallow', 'Soups', 'Proteins', 'Small Chops', 'Drinks', 'Desserts'];
+        const PAYSTACK_KEY = 'pk_test_2a34485ccc9767ef38045760c94a6d324c4b1d76';
+        const STATUSES = ['placed', 'preparing', 'ready', 'completed'];
+        const STATUS_LABEL = { placed: 'Order received', preparing: 'Preparing your Order', ready: 'Ready', completed: 'Order Completed', cancelled: 'Cancelled' };
+
+        const fbApp = initializeApp(firebaseConfig), au = getAuth(fbApp), fs = getFirestore(fbApp);
+        const $ = id => document.getElementById(id);
+        const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        const uid = p => p + '_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+        const fmt = t => new Date(t).toLocaleString();
+        const naira = n => '₦' + Number(n || 0).toLocaleString();
+        const fresh = () => ({ me: null, users: [], menu: [], orders: [], reviews: [], ann: [], log: [] });
+        let db = fresh(), unsubs = [], cart = [];
+
+        function setOffline(o) { $('offlineOverlay').classList.toggle('show', o); }
+        window.addEventListener('offline', () => setOffline(true));
+        window.addEventListener('online', () => { setOffline(false); toast('Back online'); });
+        setOffline(!navigator.onLine);
+
+        function img(file, max) { return new Promise((res, rej) => { const r = new FileReader(); r.onerror = rej; r.onload = () => { const i = new Image(); i.onerror = rej; i.onload = () => { const k = Math.min(1, max / Math.max(i.width, i.height)), c = document.createElement('canvas'); c.width = i.width * k; c.height = i.height * k; c.getContext('2d').drawImage(i, 0, 0, c.width, c.height); res(c.toDataURL('image/jpeg', .75)) }; i.src = r.result }; r.readAsDataURL(file) }) }
+        const av = (u, s = 40) => u?.avatar ? `<img src="${u.avatar}" class="rounded-full object-cover" style="width:${s}px;height:${s}px">` : `<div class="rounded-full bg-orange-600 flex items-center justify-center font-bold" style="width:${s}px;height:${s}px">${esc((u?.name || '?')[0].toUpperCase())}</div>`;
+        const uref = () => doc(fs, 'users', au.currentUser.uid);
+        const toast = (title, icon = 'success') => Swal.fire({ toast: true, position: 'top-end', icon, title, showConfirmButton: false, timer: 2200, timerProgressBar: true });
+        const log = (action, u = db.me) => u ? addDoc(collection(fs, 'log'), { t: Date.now(), uid: u.uid, name: u.name, role: u.role, action }).catch(() => { }) : Promise.resolve();
+
+        // ===== AUTH =====
+        let A = { mode: 'signup', role: 'customer' }, adminFull = false;
+        async function openAuth(mode) {
+            A.mode = mode; syncAuth(); $('authModal').classList.replace('hidden', 'flex');
+            try { const m = await getDoc(doc(fs, 'meta', 'admins')); adminFull = (m.data()?.count ?? 0) >= MAX_ADMINS } catch { }
+            if (adminFull && A.role === 'admin') A.role = 'customer'; syncAuth();
+        }
+        const closeAuth = () => $('authModal').classList.replace('flex', 'hidden');
+        const setRole = r => { A.role = r; syncAuth() };
+        function syncAuth() {
+            const su = A.mode === 'signup';
+            $('mTitle').textContent = su ? 'Create Account' : 'Welcome Back'; $('a_btn').textContent = su ? 'Create Account' : 'Login';
+            $('a_sw').textContent = su ? 'Already have an account? Log in' : 'New here? Sign up';
+            $('a_sw').onclick = e => { e.preventDefault(); openAuth(su ? 'login' : 'signup') };
+            $('roleRow').style.display = su ? 'flex' : 'none';
+            $('roleRow').innerHTML = ['customer', 'staff', 'admin'].filter(r => r !== 'admin' || !adminFull).map(r => `<button onclick="setRole('${r}')" class="flex-1 py-2 rounded-full capitalize ${A.role === r ? 'bg-white text-black font-semibold' : 'text-white/60'}">${r}</button>`).join('');
+            $('a_name').style.display = su ? '' : 'none';
+            $('a_code').style.display = su && A.role !== 'customer' ? '' : 'none';
+            $('a_code').placeholder = A.role === 'admin' ? 'Admin access code' : 'Staff access code';
+            $('a_err').classList.add('hidden');
+        }
+        const aerr = m => { $('a_err').textContent = m; $('a_err').classList.remove('hidden'); toast(m, 'error') };
+        function makeProfile(role, uidv, name, email, photo) {
+            return { uid: uidv, id: (role === 'admin' ? 'SVA-' : role === 'staff' ? 'SVS-' : 'SVC-') + Math.floor(1e5 + Math.random() * 9e5), name, email, role, joined: Date.now(), avatar: photo || null, active: true, points: 0 };
+        }
+        async function createProfile(role, u) {
+            const ref = doc(fs, 'users', u.uid);
+            if (role === 'admin') await runTransaction(fs, async tx => {
+                const m = doc(fs, 'meta', 'admins'), s = await tx.get(m), c = s.exists() ? s.data().count : 0;
+                if (c >= MAX_ADMINS) throw new Error('LIMIT'); tx.update(m, { count: c + 1 }); tx.set(ref, u);
+            }); else await setDoc(ref, u);
+        }
+        async function auth() {
+            const name = $('a_name').value.trim(), email = $('a_email').value.trim().toLowerCase(), pw = $('a_pw').value;
+            if (!/^\S+@\S+\.\S+$/.test(email)) return aerr('Enter a valid email.');
+            if (pw.length < 6) return aerr('Password must be at least 6 characters.');
+            if (A.mode === 'login') {
+                try { const c = await signInWithEmailAndPassword(au, email, pw); const s = await getDoc(doc(fs, 'users', c.user.uid)); if (s.exists()) { log('Logged in', s.data()); toast('Welcome back, ' + s.data().name + '!') } closeAuth() }
+                catch { aerr('Incorrect email or password.') } return;
+            }
+            const role = A.role;
+            if (!name) return aerr('Enter your name.');
+            if (role === 'admin' && $('a_code').value !== ADMIN_CODE) return aerr('Wrong admin access code.');
+            if (role === 'staff' && $('a_code').value !== STAFF_CODE) return aerr('Wrong staff access code.');
+            let cred; try { cred = await createUserWithEmailAndPassword(au, email, pw) } catch (e) { return aerr(e.code === 'auth/email-already-in-use' ? 'Account already exists. Log in instead.' : e.message) }
+            const u = makeProfile(role, cred.user.uid, name, email);
+            try { await createProfile(role, u); log(`Signed up as ${role}`, u); closeAuth(); Swal.fire({ title: `Welcome, ${u.name}!`, text: `Your Savora ID is ${u.id}.`, icon: 'success' }); }
+            catch (e) { await cred.user.delete().catch(() => { }); aerr(e.message === 'LIMIT' ? `Admin limit reached: only ${MAX_ADMINS} allowed.` : 'Signup failed: ' + e.message) }
+        }
+        const googleProvider = new GoogleAuthProvider();
+        async function googleAuth() {
+            let role = A.role;
+            if (A.mode === 'signup') {
+                if (role === 'admin' && $('a_code').value !== ADMIN_CODE) return aerr('Enter the admin code first, then continue with Google.');
+                if (role === 'staff' && $('a_code').value !== STAFF_CODE) return aerr('Enter the staff code first, then continue with Google.');
+            }
+            let cred; try { cred = await signInWithPopup(au, googleProvider) } catch (e) { return aerr('Google sign-in failed: ' + e.message) }
+            const existing = await getDoc(doc(fs, 'users', cred.user.uid));
+            if (existing.exists()) { log('Logged in', existing.data()); toast('Welcome back, ' + existing.data().name + '!'); closeAuth(); return }
+            if (A.mode === 'login') { aerr('No Savora account for this Google account yet. Switch to Sign Up.'); return }
+            const name = cred.user.displayName || (cred.user.email ? cred.user.email.split('@')[0] : 'Guest');
+            const u = makeProfile(role, cred.user.uid, name, cred.user.email, cred.user.photoURL);
+            try { await createProfile(role, u); log(`Signed up as ${role}`, u); closeAuth(); Swal.fire({ title: `Welcome, ${u.name}!`, text: `Your Savora ID is ${u.id}.`, icon: 'success' }); }
+            catch (e) { aerr(e.message === 'LIMIT' ? `Admin limit reached: only ${MAX_ADMINS} allowed.` : 'Signup failed: ' + e.message) }
+        }
+        const logout = async () => {
+            const r = await Swal.fire({ title: 'Log out?', icon: 'question', showCancelButton: true, confirmButtonText: 'Log out' });
+            if (!r.isConfirmed) return;
+            try { await log('Logged out') } catch { }
+            try { await signOut(au) } catch { }
+            db = fresh(); cart = []; render(); toast('Logged out', 'info');
+        };
+
+        // ===== LIVE DATA =====
+        function watch(name, q) { unsubs.push(onSnapshot(q, s => { db[name] = s.docs.map(d => d.data()); render() }, e => console.warn(name, e.message))) }
+        function startWatch(u) {
+            const C = n => collection(fs, n);
+            watch('menu', C('menu')); watch('ann', query(C('announcements'), orderBy('date', 'desc'), limit(5))); watch('reviews', C('reviews'));
+            if (u.role === 'admin') { watch('users', C('users')); watch('orders', C('orders')); watch('log', query(C('log'), orderBy('t', 'desc'), limit(200))); }
+            else if (u.role === 'staff') { watch('orders', query(C('orders'), where('status', 'in', ['placed', 'preparing', 'ready']))); }
+            else watch('orders', query(C('orders'), where('uid', '==', u.uid)));
+        }
+        onAuthStateChanged(au, user => {
+            unsubs.forEach(f => f()); unsubs = []; db = fresh(); render();
+            if (!user) { watch('menu', collection(fs, 'menu')); watch('ann', query(collection(fs, 'announcements'), orderBy('date', 'desc'), limit(5))); watch('reviews', collection(fs, 'reviews')); return; }
+            let started = false;
+            unsubs.push(onSnapshot(doc(fs, 'users', user.uid), s => { db.me = s.exists() ? s.data() : null; if (db.me && !started) { started = true; startWatch(db.me) } render() }));
+        });
+
+        // ===== CART =====
+        function addToCart(itemId) {
+            const item = db.menu.find(m => m.id === itemId); if (!item || item.available === false) return;
+            const line = cart.find(c => c.id === itemId);
+            if (line) line.qty++; else cart.push({ id: item.id, name: item.name, price: item.price, qty: 1 });
+            toast(item.name + ' added to cart'); renderCart();
+        }
+        function changeQty(itemId, delta) {
+            const line = cart.find(c => c.id === itemId); if (!line) return;
+            line.qty += delta; if (line.qty <= 0) cart = cart.filter(c => c.id !== itemId);
+            renderCart();
+        }
+        const cartTotal = () => cart.reduce((s, c) => s + c.price * c.qty, 0);
+        const cartCount = () => cart.reduce((s, c) => s + c.qty, 0);
+        function openCart() { renderCart(); $('cartDrawer').classList.replace('hidden', 'flex'); }
+        function closeCart() { $('cartDrawer').classList.replace('flex', 'hidden'); }
+        function renderCart() {
+            $('cartItems').innerHTML = cart.length ? cart.map(c => `<div class="flex justify-between items-center border-b border-white/5 pb-2"><div><p class="font-semibold text-sm">${esc(c.name)}</p><p class="text-xs text-white/50">${naira(c.price)} each</p></div><div class="flex items-center gap-2"><button onclick="changeQty('${c.id}',-1)" class="btn2 !px-2 !py-0.5">-</button><span>${c.qty}</span><button onclick="changeQty('${c.id}',1)" class="btn2 !px-2 !py-0.5">+</button></div></div>`).join('') : '<p class="text-white/40 text-sm">Your cart is empty.</p>';
+            const u = db.me;
+            $('cartCheckout').innerHTML = !cart.length ? '' : !u ? `<p class="text-white/60 text-sm mb-3">Log in to check out.</p><button onclick="closeAuth();openAuth('login')" class="btn w-full">Login</button>` : `
+    <div class="mt-2 mb-3"><label class="text-xs text-white/50">Delivery type</label>
+      <select id="co_type" class="inp" onchange="renderCart()"><option value="pickup">Pickup</option><option value="delivery">Delivery (+${naira(DELIVERY_FEE)})</option></select></div>
+    ${$('co_type')?.value === 'delivery' ? `<input id="co_addr" class="inp" placeholder="Delivery address"><input id="co_phone" class="inp" placeholder="Phone number">` : ''}
+    <div class="flex justify-between text-sm text-white/70 mb-1"><span>Subtotal</span><span>${naira(cartTotal())}</span></div>
+    ${$('co_type')?.value === 'delivery' ? `<div class="flex justify-between text-sm text-white/70 mb-1"><span>Delivery fee</span><span>${naira(DELIVERY_FEE)}</span></div>` : ''}
+    <div class="flex justify-between font-bold text-lg mt-2 mb-4"><span>Total</span><span>${naira(cartTotal() + ($('co_type')?.value === 'delivery' ? DELIVERY_FEE : 0))}</span></div>
+    <button onclick="checkout()" class="btn w-full">Pay & place order</button>`;
+        }
+        async function checkout() {
+            const u = db.me, type = $('co_type')?.value || 'pickup';
+            const addr = $('co_addr')?.value.trim(), phone = $('co_phone')?.value.trim();
+            if (type === 'delivery' && (!addr || !phone)) return Swal.fire('Missing info', 'Add a delivery address and phone number.', 'warning');
+            const total = cartTotal() + (type === 'delivery' ? DELIVERY_FEE : 0);
+            if (!window.PaystackPop) return Swal.fire('Paystack failed to load', 'Check your connection or ad-blocker.', 'error');
+            PaystackPop.setup({
+                key: PAYSTACK_KEY, email: u.email, amount: total * 100, currency: 'NGN', ref: 'SV_' + Date.now(),
+                onClose() { toast('Payment cancelled', 'info') },
+                async callback(r) {
+                    const id = uid('o'), pts = Math.floor(total / POINTS_PER_NAIRA);
+                    await setDoc(doc(fs, 'orders', id), { id, uid: u.uid, customerName: u.name, items: cart.map(c => ({ id: c.id, name: c.name, price: c.price, qty: c.qty })), total, type, address: addr || null, phone: phone || null, status: 'placed', paid: true, ref: r.reference, date: Date.now(), updatedAt: Date.now() });
+                    await updateDoc(uref(), { points: increment(pts) });
+                    log(`Placed order ${naira(total)} (ref ${r.reference})`); cart = []; closeCart();
+                    Swal.fire({ title: 'Order placed!', html: `Ref: ${r.reference}<br>You earned <b>${pts} points</b>.`, icon: 'success' });
+                }
+            }).openIframe();
+        }
+
+        // ===== STAFF/ADMIN ACTIONS =====
+        async function advanceStatus(orderId) {
+            const o = db.orders.find(x => x.id === orderId); if (!o) return;
+            const idx = STATUSES.indexOf(o.status); const next = STATUSES[idx + 1]; if (!next) return;
+            await updateDoc(doc(fs, 'orders', orderId), { status: next, updatedAt: Date.now() });
+            log(`Moved order ${orderId} to ${next}`); toast('Order updated: ' + STATUS_LABEL[next]);
+        }
+        async function cancelOrder(orderId) {
+            const r = await Swal.fire({ title: 'Cancel this order?', icon: 'warning', showCancelButton: true, confirmButtonText: 'Cancel order' });
+            if (!r.isConfirmed) return;
+            await updateDoc(doc(fs, 'orders', orderId), { status: 'cancelled', updatedAt: Date.now() });
+            log(`Cancelled order ${orderId}`); toast('Order cancelled', 'warning');
+        }
+        async function toggleAvailable(itemId, val) {
+            await updateDoc(doc(fs, 'menu', itemId), { available: val }); log(`Marked ${db.menu.find(m => m.id === itemId)?.name} ${val ? 'in stock' : 'out of stock'}`); toast('Menu updated');
+        }
+        async function saveMenuItem() {
+            const name = $('mi_name').value.trim(), price = parseInt($('mi_price').value), desc = $('mi_desc').value.trim(), cat = $('mi_cat').value, f = $('mi_img').files[0];
+            if (!name || !price) return Swal.fire('Missing info', 'Name and price are required.', 'warning');
+            const id = uid('m'); const image = f ? await img(f, 500) : null;
+            await setDoc(doc(fs, 'menu', id), { id, name, price, desc, category: cat, img: image, available: true, byUid: db.me.uid, date: Date.now() });
+            log('Added menu item: ' + name); toast('Menu item added');
+            ['mi_name', 'mi_price', 'mi_desc'].forEach(x => $(x).value = ''); $('mi_img').value = '';
+        }
+        async function deleteMenuItem(id) {
+            const r = await Swal.fire({ title: 'Remove this item?', icon: 'warning', showCancelButton: true, confirmButtonText: 'Remove' });
+            if (!r.isConfirmed) return; await deleteDoc(doc(fs, 'menu', id)); log('Removed menu item'); toast('Removed', 'info');
+        }
+        async function postAnn() {
+            const t = $('n_t').value.trim(), b = $('n_b').value.trim(); if (!t || !b) return Swal.fire('Missing info', 'Add a title and message.', 'warning');
+            await setDoc(doc(fs, 'announcements', uid('n')), { title: t, body: b, by: db.me.name, date: Date.now() });
+            log('Posted announcement: ' + t); toast('Announcement posted'); $('n_t').value = ''; $('n_b').value = '';
+        }
+        async function toggleActive(userId, val) {
+            if (!val && !(await Swal.fire({ title: 'Suspend this account?', icon: 'warning', showCancelButton: true, confirmButtonText: 'Suspend' })).isConfirmed) return;
+            await updateDoc(doc(fs, 'users', userId), { active: val }); log(`${val ? 'Reactivated' : 'Suspended'} account`); toast(val ? 'Reactivated' : 'Suspended', val ? 'success' : 'warning');
+        }
+        function exportCSV() {
+            const rows = [['Order ID', 'Customer', 'Total', 'Type', 'Status', 'Date']];
+            db.orders.forEach(o => rows.push([o.id, o.customerName, o.total, o.type, o.status, fmt(o.date)]));
+            const csv = rows.map(r => r.map(v => '"' + String(v).replace(/"/g, '""') + '"').join(',')).join('\n');
+            const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' })); a.download = 'savora-orders.csv'; a.click(); toast('CSV downloaded');
+        }
+        async function submitReview(itemId) {
+            const r = await Swal.fire({
+                title: 'Leave a review', html: `<select id="rv_s" class="inp"><option value="5">★★★★★</option><option value="4">★★★★</option><option value="3">★★★</option><option value="2">★★</option><option value="1">★</option></select><textarea id="rv_c" class="inp" rows="3" placeholder="What did you think?"></textarea>`, showCancelButton: true, confirmButtonText: 'Submit',
+                preConfirm: () => { const c = $('rv_c').value.trim(); if (c.length < 5) return Swal.showValidationMessage('Write a bit more'); return { rating: +$('rv_s').value, comment: c } }
+            });
+            if (!r.isConfirmed) return;
+            await setDoc(doc(fs, 'reviews', uid('r')), { id: uid('r'), itemId, uid: db.me.uid, name: db.me.name, rating: r.value.rating, comment: r.value.comment, date: Date.now() });
+            toast('Review posted'); Swal.fire('Thanks!', 'Your review helps other customers.', 'success');
+        }
+        function resetPw() {
+            const e = $('a_email').value.trim(); if (!e) return aerr('Type your email above first.');
+            sendPasswordResetEmail(au, e).then(() => Swal.fire('Check your email', 'A reset link was sent if the account exists.', 'success')).catch(x => aerr(x.message));
+        }
+
+        // ===== VIEWS =====
+        const badge = (label, color) => `<span class="px-3 py-1 rounded-full text-xs font-semibold ${color}">${label}</span>`;
+        const statusColor = s => ({ placed: 'bg-blue-500/20 text-blue-300', preparing: 'bg-yellow-500/20 text-yellow-300', ready: 'bg-green-500/20 text-green-300', completed: 'bg-white/10 text-white/60', cancelled: 'bg-red-500/20 text-red-400' }[s] || 'bg-white/10');
+        const itemRating = itemId => { const r = db.reviews.filter(x => x.itemId === itemId); return r.length ? (r.reduce((s, x) => s + x.rating, 0) / r.length).toFixed(1) : null; };
+        function navHtml(u) {
+            const logo = `<h1 class="text-xl md:text-2xl font-bold">🍛 Savora</h1>`;
+            const cartBtn = `<button onclick="openCart()" class="relative btn2">🛒${cartCount() ? `<span class="absolute -top-2 -right-2 bg-orange-500 text-xs rounded-full w-5 h-5 flex items-center justify-center">${cartCount()}</span>` : ''}</button>`;
+            if (!au.currentUser) return logo + `<div class="flex gap-2 items-center">${cartBtn}<button class="btn2" onclick="openAuth('login')">Login</button><button class="btn" onclick="openAuth('signup')">Sign Up</button></div>`;
+            return logo + `<div class="flex items-center gap-3">${u?.role === 'customer' ? cartBtn : ''}${u ? `<span class="text-sm text-white/60 hidden md:inline">${esc(u.name)} · ${u.id}</span>` : ''}<button class="btn2" onclick="logout()">Logout</button></div>`;
+        }
+        function menuGrid(editable) {
+            const byCat = CATEGORIES.map(c => ({ cat: c, items: db.menu.filter(m => m.category === c) })).filter(g => g.items.length);
+            return byCat.map(g => `<div class="mb-8"><h3 class="text-xl font-bold mb-3">${esc(g.cat)}</h3><div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">${g.items.map(m => {
+                const rating = itemRating(m.id);
+                return `<div class="card !p-4 ${m.available === false ? 'opacity-50' : ''}">
+      ${m.img ? `<img src="${m.img}" class="rounded-xl h-32 w-full object-cover mb-3">` : `<div class="rounded-xl h-32 w-full bg-white/5 mb-3 flex items-center justify-center text-3xl">🍽️</div>`}
+      <div class="flex justify-between items-start"><h4 class="font-bold">${esc(m.name)}</h4><span class="font-bold text-orange-400">${naira(m.price)}</span></div>
+      <p class="text-white/50 text-xs mt-1">${esc(m.desc || '')}</p>
+      ${rating ? `<p class="text-xs text-yellow-400 mt-1">★ ${rating}</p>` : ''}
+      ${m.available === false ? `<p class="text-xs text-red-400 mt-2">Out of stock</p>` : ''}
+      <div class="flex gap-2 mt-3">
+        ${editable ? `<button onclick="toggleAvailable('${m.id}', ${m.available === false})" class="btn2 flex-1 text-xs">${m.available === false ? 'Mark in stock' : 'Mark out of stock'}</button><button onclick="deleteMenuItem('${m.id}')" class="text-red-400 text-xs px-2">Delete</button>`
+                        : `<button onclick="addToCart('${m.id}')" class="btn flex-1 text-sm" ${m.available === false ? 'disabled' : ''}>Add to cart</button><button onclick="submitReview('${m.id}')" class="btn2 text-xs">Review</button>`}
+      </div></div>`;
+            }).join('')}</div></div>`).join('') || '<p class="text-white/40">No menu items yet.</p>';
+        }
+        function annList() { return db.ann.map(n => `<div class="text-sm border-b border-white/5 pb-2"><b>${esc(n.title)}</b> <span class="text-xs text-white/40">${esc(n.by)} · ${fmt(n.date)}</span><p class="text-white/70">${esc(n.body)}</p></div>`).join('') || '<p class="text-white/40 text-sm">No announcements.</p>'; }
+        function orderTimeline(o) {
+            if (o.status === 'cancelled') return `<p class="text-red-400 text-sm mt-2">Order cancelled</p>`;
+            const idx = STATUSES.indexOf(o.status);
+            return `<div class="flex gap-1 mt-3">${STATUSES.map((s, i) => `<div class="flex-1 h-2 rounded-full ${i <= idx ? 'bg-orange-500' : 'bg-white/10'}"></div>`).join('')}</div><p class="text-xs text-white/50 mt-1">${STATUS_LABEL[o.status]}</p>`;
+        }
+        function landing() {
+            return `<section class="text-center py-20 px-6"><h2 class="text-5xl md:text-7xl font-bold leading-tight">Real food.<br><span class="text-orange-400">Real fast.</span></h2><p class="text-white/60 mt-6 max-w-xl mx-auto">Order Nigerian dishes online, track your order live, and earn points on every purchase.</p><button onclick="openAuth('signup')" class="btn !px-8 !py-4 mt-8 text-lg">Start ordering →</button></section>
+  ${db.ann.length ? `<section class="max-w-3xl mx-auto p-6 mb-8"><div class="card">${annList()}</div></section>` : ''}
+  <section class="max-w-6xl mx-auto p-6">${menuGrid(false)}</section>`;
+        }
+        function customerV(u) {
+            const myOrders = db.orders.filter(o => o.uid === u.uid).sort((a, b) => b.date - a.date);
+            return `<div class="max-w-6xl mx-auto p-6"><div class="card flex flex-wrap items-center justify-between gap-4 mb-6"><div class="flex items-center gap-4">${av(u, 64)}<div><h2 class="text-2xl font-bold">${esc(u.name)}</h2><p class="text-white/50 text-sm">${u.id} · ${u.points || 0} points</p></div></div></div>
+  ${db.ann.length ? `<div class="card mb-6">${annList()}</div>` : ''}
+  ${myOrders.length ? `<h3 class="text-xl font-bold mb-3">Your orders</h3><div class="space-y-3 mb-8">${myOrders.map(o => `<div class="card !p-5"><div class="flex justify-between items-start"><div><p class="font-bold">${o.items.map(i => `${i.qty}× ${esc(i.name)}`).join(', ')}</p><p class="text-white/50 text-xs mt-1">${fmt(o.date)} · ${o.type} · ${naira(o.total)}</p></div>${badge(STATUS_LABEL[o.status], statusColor(o.status))}</div>${orderTimeline(o)}</div>`).join('')}</div>` : ''}
+  <h3 class="text-xl font-bold mb-3">Menu</h3>${menuGrid(false)}</div>`;
+        }
+        function staffV(u) {
+            const active = [...db.orders].sort((a, b) => a.date - b.date);
+            return `<div class="max-w-4xl mx-auto p-6"><div class="card flex items-center gap-4 mb-6">${av(u, 64)}<div><h2 class="text-2xl font-bold">${esc(u.name)}</h2><p class="text-white/50 text-sm">Staff · ${u.id}</p></div></div>
+  <h3 class="text-xl font-bold mb-3">Active orders (${active.length})</h3><div class="space-y-3">${active.map(o => `<div class="card !p-5"><div class="flex justify-between items-start"><div><p class="font-bold">${o.items.map(i => `${i.qty}× ${esc(i.name)}`).join(', ')}</p><p class="text-white/50 text-xs mt-1">${esc(o.customerName)} · ${o.type}${o.address ? ' · ' + esc(o.address) : ''}${o.phone ? ' · ' + esc(o.phone) : ''}</p></div>${badge(STATUS_LABEL[o.status], statusColor(o.status))}</div>
+  <div class="flex gap-2 mt-3">${STATUSES.indexOf(o.status) < STATUSES.length - 1 ? `<button onclick="advanceStatus('${o.id}')" class="btn text-sm">Mark ${STATUS_LABEL[STATUSES[STATUSES.indexOf(o.status) + 1]]}</button>` : ''}${o.status !== 'completed' ? `<button onclick="cancelOrder('${o.id}')" class="text-red-400 text-sm px-2">Cancel</button>` : ''}</div></div>`).join('') || '<p class="text-white/40">No active orders right now.</p>'}</div></div>`;
+        }
+        function adminV(u) {
+            const us = db.users, custs = us.filter(x => x.role === 'customer'), paidOrders = db.orders.filter(o => o.status !== 'cancelled');
+            const revenue = paidOrders.reduce((s, o) => s + o.total, 0), stat = (n, l) => `<div class="card !p-4 text-center"><p class="text-3xl font-bold">${n}</p><p class="text-white/50 text-xs">${l}</p></div>`;
+            return `<div class="max-w-6xl mx-auto p-6"><div class="card flex items-center gap-4 mb-6">${av(u, 64)}<div><h2 class="text-2xl font-bold">Admin Dashboard</h2><p class="text-white/50 text-sm">${esc(u.name)} · ${u.id}</p></div></div>
+  <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">${stat(custs.length, 'Customers')}${stat(us.filter(x => x.role === 'staff').length, 'Staff')}${stat(db.orders.length, 'Orders')}${stat(naira(revenue), 'Revenue')}${stat(db.menu.length, 'Menu items')}</div>
+  <div class="grid lg:grid-cols-2 gap-6 mb-6"><div class="card"><h3 class="font-bold mb-3">Add menu item</h3><input id="mi_name" class="inp" placeholder="Item name"><input id="mi_price" type="number" class="inp" placeholder="Price (₦)"><select id="mi_cat" class="inp">${CATEGORIES.map(c => `<option>${c}</option>`).join('')}</select><textarea id="mi_desc" class="inp" rows="2" placeholder="Description"></textarea><input type="file" id="mi_img" accept="image/*" class="text-sm mb-3"><button onclick="saveMenuItem()" class="btn w-full">Add item</button></div>
+  <div class="card"><h3 class="font-bold mb-3">Post announcement</h3><input id="n_t" class="inp" placeholder="Title"><textarea id="n_b" class="inp" rows="2" placeholder="Message"></textarea><button onclick="postAnn()" class="btn w-full">Post</button><button onclick="exportCSV()" class="btn2 mt-4 text-sm w-full">⬇ Export orders (CSV)</button></div></div>
+  <h3 class="text-xl font-bold mb-3">Menu</h3><div class="mb-8">${menuGrid(true)}</div>
+  <h3 class="text-xl font-bold mb-3">All orders (${db.orders.length})</h3><div class="space-y-2 mb-8 max-h-96 overflow-y-auto">${[...db.orders].sort((a, b) => b.date - a.date).map(o => `<div class="card !p-4 flex justify-between items-center text-sm"><span>${esc(o.customerName)} — ${naira(o.total)} — ${fmt(o.date)}</span>${badge(STATUS_LABEL[o.status], statusColor(o.status))}</div>`).join('') || '<p class="text-white/40 text-sm">No orders yet.</p>'}</div>
+  <h3 class="text-xl font-bold mb-3">All users</h3><div class="card overflow-x-auto"><table class="w-full text-sm text-left"><thead class="text-white/40"><tr><th class="py-2 pr-2"></th><th class="pr-3">Name</th><th class="pr-3">Role</th><th class="pr-3">Points</th><th></th></tr></thead><tbody>${us.map(x => `<tr class="border-t border-white/5"><td class="py-2 pr-2">${av(x, 28)}</td><td class="pr-3">${esc(x.name)}<br><span class="text-xs text-white/40">${esc(x.email)}</span></td><td class="pr-3 capitalize">${x.role}</td><td class="pr-3">${x.points || 0}</td><td>${x.role !== 'admin' ? `<button class="text-xs ${x.active === false ? 'text-green-400' : 'text-red-400'}" onclick="toggleActive('${x.uid}', ${x.active === false})">${x.active === false ? 'Activate' : 'Suspend'}</button>` : ''}</td></tr>`).join('')}</tbody></table></div>
+  <h3 class="text-xl font-bold mt-8 mb-3">Activity log</h3><div class="card space-y-2 max-h-80 overflow-y-auto">${db.log.map(l => `<div class="text-sm border-b border-white/5 pb-2"><span class="font-semibold">${esc(l.name)}</span> <span class="text-xs px-2 rounded-full bg-white/10">${esc(l.role)}</span> ${esc(l.action)}<br><span class="text-xs text-white/40">${fmt(l.t)}</span></div>`).join('') || '<p class="text-white/40 text-sm">No activity yet.</p>'}</div></div>`;
+        }
+        function render(force) {
+            const a = document.activeElement; if (!force && a && /INPUT|TEXTAREA/.test(a.tagName) && $('main').contains(a)) return;
+            const u = db.me; $('nav').innerHTML = navHtml(u);
+            $('main').innerHTML = !au.currentUser ? landing() : !u ? '<div class="flex flex-col items-center justify-center py-24 gap-4"><div class="spinner"></div><p class="text-white/40 text-sm">Loading…</p></div>' : u.active === false ? '<p class="text-center text-red-400 py-20">Your account has been suspended. Please contact the restaurant.</p>' : u.role === 'admin' ? adminV(u) : u.role === 'staff' ? staffV(u) : customerV(u);
+        }
+        window.addEventListener('unhandledrejection', e => Swal.fire('Something went wrong', String(e.reason?.message || 'Please try again.'), 'error'));
+        Object.assign(window, { openAuth, closeAuth, setRole, auth, googleAuth, logout, resetPw, addToCart, changeQty, openCart, closeCart, checkout, advanceStatus, cancelOrder, toggleAvailable, saveMenuItem, deleteMenuItem, postAnn, toggleActive, exportCSV, submitReview, render });
+        render();
+    </script>
+</body>
+
+</html>

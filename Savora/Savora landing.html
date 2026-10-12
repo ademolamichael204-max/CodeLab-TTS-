@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Savora - Real Food, Real Fast</title>
+  <meta name="description" content="Savora Eatery - order Nigerian food online, track your order live, and earn loyalty points on every purchase.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8D%9B%3C/text%3E%3C/svg%3E">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
+  <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+  <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+  <style>
+    body { scroll-behavior: smooth; font-family: 'Inter', sans-serif }
+    #navbar.scrolled { background: rgba(13,10,8,0.9); backdrop-filter: blur(12px); box-shadow: 0 1px 0 rgba(255,255,255,0.08); }
+    #mobileMenu { max-height: 0; overflow: hidden; transition: max-height .3s ease; }
+    #mobileMenu.open { max-height: 300px; }
+    #backToTop { opacity: 0; pointer-events: none; transition: opacity .25s ease, transform .25s ease; transform: translateY(10px); }
+    #backToTop.show { opacity: 1; pointer-events: auto; transform: translateY(0); }
+  </style>
+</head>
+
+<body class="bg-[#0d0a08] text-white">
+
+  <!-- NAVBAR -->
+  <nav id="navbar" class="fixed top-0 w-full z-50 transition-all bg-transparent">
+    <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+      <h1 class="text-2xl font-black">🍛 Savora</h1>
+      <div class="hidden md:flex gap-8 text-sm font-bold">
+        <a href="#menu" class="hover:text-orange-400 transition-colors">Menu</a>
+        <a href="#how" class="hover:text-orange-400 transition-colors">How it works</a>
+        <a href="#reviews" class="hover:text-orange-400 transition-colors">Reviews</a>
+        <a href="#loyalty" class="hover:text-orange-400 transition-colors">Loyalty</a>
+        <a href="#faq" class="hover:text-orange-400 transition-colors">FAQ</a>
+      </div>
+      <div class="hidden md:flex gap-3">
+        <button onclick="location.href='savora-app.html'" class="px-5 py-2 rounded-full border border-white/20 font-bold text-sm hover:bg-white/10 transition-colors">Login</button>
+        <button onclick="location.href='savora-app.html'" class="px-5 py-2 rounded-full bg-orange-500 text-white font-bold text-sm hover:bg-orange-600 transition-colors">Order now</button>
+      </div>
+      <button id="menuBtn" class="md:hidden text-2xl" aria-label="Open menu">☰</button>
+    </div>
+    <div id="mobileMenu" class="md:hidden px-6 pb-4 flex flex-col gap-4 bg-[#0d0a08] text-sm font-bold">
+      <a href="#menu" class="py-1">Menu</a>
+      <a href="#how" class="py-1">How it works</a>
+      <a href="#reviews" class="py-1">Reviews</a>
+      <a href="#loyalty" class="py-1">Loyalty</a>
+      <a href="#faq" class="py-1">FAQ</a>
+      <div class="flex gap-3 pt-2">
+        <button onclick="location.href='savora-app.html'" class="flex-1 px-5 py-2 rounded-full border border-white/20 font-bold">Login</button>
+        <button onclick="location.href='savora-app.html'" class="flex-1 px-5 py-2 rounded-full bg-orange-500 font-bold">Order now</button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <section class="min-h-screen flex items-center bg-gradient-to-br from-[#1a1310] to-[#0d0a08] pt-24">
+    <div class="max-w-7xl mx-auto px-6 grid md:grid-cols-2 gap-10 items-center">
+      <div data-aos="fade-right">
+        <div class="bg-orange-500 text-white text-xs px-4 py-2 rounded-full inline-flex mb-6 font-bold">🔥 Fresh daily • Delivery & pickup</div>
+        <h1 class="text-6xl md:text-7xl font-black leading-none">REAL FOOD.<br><span class="text-orange-400">REAL FAST.</span></h1>
+        <p class="text-white/60 mt-6 mb-8 max-w-md">Order your favourite Nigerian dishes online, track every step in the kitchen, and earn points on every plate.</p>
+        <div class="flex flex-wrap gap-4">
+          <button onclick="location.href='savora-app.html'" class="bg-orange-500 text-white px-8 py-4 rounded-full font-bold hover:bg-orange-600 transition-colors shadow-lg hover:shadow-orange-500/30">Order now</button>
+          <a href="#menu" class="px-8 py-4 rounded-full font-bold border-2 border-white/20 hover:bg-white hover:text-black transition-colors">See menu</a>
+        </div>
+      </div>
+      <div data-aos="fade-left" class="relative">
+        <div class="rounded-[2rem] h-[420px] md:h-[500px] w-full shadow-2xl bg-gradient-to-br from-orange-500 to-red-700 relative overflow-hidden flex items-center justify-center">
+          <div class="text-[10rem]">🍲</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- MENU PREVIEW -->
+  <section id="menu" class="py-20 bg-[#15100c]">
+    <div class="max-w-7xl mx-auto px-6">
+      <h2 class="text-5xl font-black text-center mb-4" data-aos="fade-up">WHAT'S COOKING</h2>
+      <p class="text-center text-white/50 mb-12" data-aos="fade-up">A few of our best-loved dishes.</p>
+      <div class="grid sm:grid-cols-2 md:grid-cols-3 gap-6">
+        <div data-aos="zoom-in" class="bg-[#1a1310] rounded-2xl p-6"><p class="text-4xl mb-3">🍚</p><p class="font-bold">Jollof Rice & Chicken</p><p class="text-white/50 text-sm mt-1">Smoky party jollof, grilled chicken, plantain.</p><p class="text-orange-400 font-bold mt-3">₦3,500</p></div>
+        <div data-aos="zoom-in" data-aos-delay="50" class="bg-[#1a1310] rounded-2xl p-6"><p class="text-4xl mb-3">🍲</p><p class="font-bold">Egusi Soup & Pounded Yam</p><p class="text-white/50 text-sm mt-1">Rich egusi with assorted meat and fish.</p><p class="text-orange-400 font-bold mt-3">₦4,000</p></div>
+        <div data-aos="zoom-in" data-aos-delay="100" class="bg-[#1a1310] rounded-2xl p-6"><p class="text-4xl mb-3">🍢</p><p class="font-bold">Suya Platter</p><p class="text-white/50 text-sm mt-1">Spicy grilled beef skewers, onions, pepper.</p><p class="text-orange-400 font-bold mt-3">₦2,800</p></div>
+      </div>
+      <p class="text-center text-white/40 text-sm mt-8">The full menu, with photos and reviews, is inside the app.</p>
+    </div>
+  </section>
+
+  <!-- HOW IT WORKS -->
+  <section id="how" class="py-20 bg-[#0d0a08]">
+    <div class="max-w-5xl mx-auto px-6">
+      <h2 class="text-5xl font-black text-center mb-12" data-aos="fade-up">HOW IT WORKS</h2>
+      <div class="grid md:grid-cols-3 gap-8">
+        <div data-aos="fade-up" class="bg-[#15100c] rounded-[2rem] p-8 text-center"><p class="text-4xl mb-4">1️⃣</p><h3 class="font-bold mb-2">Browse & order</h3><p class="text-sm text-white/50">Pick your dishes, choose delivery or pickup, and pay securely.</p></div>
+        <div data-aos="fade-up" data-aos-delay="100" class="bg-[#15100c] rounded-[2rem] p-8 text-center"><p class="text-4xl mb-4">2️⃣</p><h3 class="font-bold mb-2">Track live</h3><p class="text-sm text-white/50">Watch your order move from received to preparing to ready.</p></div>
+        <div data-aos="fade-up" data-aos-delay="200" class="bg-[#15100c] rounded-[2rem] p-8 text-center"><p class="text-4xl mb-4">3️⃣</p><h3 class="font-bold mb-2">Earn points</h3><p class="text-sm text-white/50">Every order adds loyalty points towards future discounts.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- REVIEWS -->
+  <section id="reviews" class="py-20 bg-[#15100c]">
+    <div class="max-w-7xl mx-auto px-6">
+      <h2 class="text-5xl font-black text-center mb-4" data-aos="fade-up">WHAT CUSTOMERS SAY</h2>
+      <p class="text-center text-white/50 mb-12" data-aos="fade-up">Real reviews from real plates.</p>
+      <div class="grid md:grid-cols-3 gap-8">
+        <div data-aos="zoom-in" class="bg-[#1a1310] rounded-[2rem] p-8">
+          <div class="flex items-center gap-4 mb-4"><div class="w-14 h-14 rounded-full flex items-center justify-center font-bold bg-orange-500">TA</div><div><p class="font-bold">Tunde A.</p><p class="text-xs text-white/50">Regular customer</p></div></div>
+          <p class="text-sm text-white/70">"I love watching my order status update in real time. The jollof never disappoints."</p>
+          <div class="flex gap-1 mt-4 text-yellow-400">★★★★★</div>
+        </div>
+        <div data-aos="zoom-in" data-aos-delay="100" class="bg-[#1a1310] rounded-[2rem] p-8">
+          <div class="flex items-center gap-4 mb-4"><div class="w-14 h-14 rounded-full flex items-center justify-center font-bold bg-red-600">BE</div><div><p class="font-bold">Blessing E.</p><p class="text-xs text-white/50">Regular customer</p></div></div>
+          <p class="text-sm text-white/70">"Delivery is always fast and the points actually add up to real discounts."</p>
+          <div class="flex gap-1 mt-4 text-yellow-400">★★★★★</div>
+        </div>
+        <div data-aos="zoom-in" data-aos-delay="200" class="bg-[#1a1310] rounded-[2rem] p-8">
+          <div class="flex items-center gap-4 mb-4"><div class="w-14 h-14 rounded-full flex items-center justify-center font-bold bg-orange-500">KO</div><div><p class="font-bold">Kemi O.</p><p class="text-xs text-white/50">Regular customer</p></div></div>
+          <p class="text-sm text-white/70">"Best egusi in town, and payment through Paystack was completely painless."</p>
+          <div class="flex gap-1 mt-4 text-yellow-400">★★★★★</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- LOYALTY -->
+  <section id="loyalty" class="py-20 bg-[#0d0a08]">
+    <div class="max-w-3xl mx-auto px-6 text-center">
+      <h2 class="text-5xl font-black mb-4" data-aos="fade-up">EARN AS YOU EAT</h2>
+      <p class="text-white/50 mb-10" data-aos="fade-up">Every ₦100 you spend earns 1 loyalty point, automatically.</p>
+      <div data-aos="zoom-in" class="bg-gradient-to-br from-orange-500 to-red-700 rounded-[2.5rem] p-10 md:p-14 inline-block w-full">
+        <p class="text-6xl font-black mb-2">₦100 = 1pt</p>
+        <p class="text-white/80 mb-8">Points are added to your account the moment your order is paid.</p>
+        <button onclick="location.href='savora-app.html'" class="bg-black text-white px-10 py-4 rounded-full font-bold hover:bg-gray-800 transition-colors w-full sm:w-auto">Start earning</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section id="faq" class="py-20 max-w-4xl mx-auto px-6">
+    <h2 class="text-5xl font-black text-center mb-4" data-aos="fade-up">Frequently Asked Questions</h2>
+    <p class="text-center text-white/50 mb-12" data-aos="fade-up">Everything about ordering with Savora.</p>
+    <div class="space-y-4">
+      <div class="border border-white/10 rounded-2xl p-6" data-aos="fade-up"><h3 class="text-lg font-bold mb-2">What areas do you deliver to?</h3><p class="text-sm text-white/50">Delivery is available within the city, with a flat delivery fee added at checkout. Pickup is always free.</p></div>
+      <div class="border border-white/10 rounded-2xl p-6" data-aos="fade-up" data-aos-delay="50"><h3 class="text-lg font-bold mb-2">How do I track my order?</h3><p class="text-sm text-white/50">Once you log in, your dashboard shows a live progress bar for every order — received, preparing, ready, completed.</p></div>
+      <div class="border border-white/10 rounded-2xl p-6" data-aos="fade-up" data-aos-delay="100"><h3 class="text-lg font-bold mb-2">How do I pay?</h3><p class="text-sm text-white/50">Payment is handled securely through Paystack — cards and bank transfer in Naira.</p></div>
+      <div class="border border-white/10 rounded-2xl p-6" data-aos="fade-up" data-aos-delay="150"><h3 class="text-lg font-bold mb-2">Can I cancel an order?</h3><p class="text-sm text-white/50">Contact us as soon as possible — orders can be cancelled by our staff before preparation begins.</p></div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="bg-[#15100c] border-t border-white/10 pt-14 pb-8">
+    <div class="max-w-7xl mx-auto px-6 grid md:grid-cols-4 gap-10 mb-10">
+      <div><h1 class="text-xl font-black mb-3">🍛 Savora</h1><p class="text-sm text-white/50">Real food, real fast — order online and track every step.</p></div>
+      <div><p class="font-bold text-sm mb-3">Explore</p><div class="flex flex-col gap-2 text-sm text-white/50"><a href="#menu" class="hover:text-orange-400">Menu</a><a href="#how" class="hover:text-orange-400">How it works</a><a href="#loyalty" class="hover:text-orange-400">Loyalty</a></div></div>
+      <div><p class="font-bold text-sm mb-3">Support</p><div class="flex flex-col gap-2 text-sm text-white/50"><a href="#reviews" class="hover:text-orange-400">Reviews</a><a href="#faq" class="hover:text-orange-400">FAQ</a></div></div>
+      <div><p class="font-bold text-sm mb-3">Get started</p><button onclick="location.href='savora-app.html'" class="bg-orange-500 text-white px-5 py-2.5 rounded-full font-bold text-sm hover:bg-orange-600 transition-colors">Order now</button></div>
+    </div>
+    <div class="max-w-7xl mx-auto px-6 pt-6 border-t border-white/10 text-center text-xs text-white/30"><p>&copy; <span id="year"></span> Savora Eatery.</p></div>
+  </footer>
+
+  <button id="backToTop" onclick="window.scrollTo({top:0,behavior:'smooth'})" class="fixed bottom-6 right-6 z-50 bg-orange-500 text-white w-12 h-12 rounded-full shadow-lg hover:bg-orange-600 transition-colors">↑</button>
+
+  <script>
+    AOS.init({ duration: 700, once: true });
+    document.getElementById('year').textContent = new Date().getFullYear();
+    const nav = document.getElementById('navbar'), toTop = document.getElementById('backToTop');
+    window.addEventListener('scroll', () => { nav.classList.toggle('scrolled', window.scrollY > 40); toTop.classList.toggle('show', window.scrollY > 500); });
+    const menuBtn = document.getElementById('menuBtn'), mobileMenu = document.getElementById('mobileMenu');
+    menuBtn.addEventListener('click', () => mobileMenu.classList.toggle('open'));
+    mobileMenu.querySelectorAll('a').forEach(a => a.addEventListener('click', () => mobileMenu.classList.remove('open')));
+  </script>
+</body>
+</html>

@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ademola "Kelvin Tina" | Web Developer Portfolio</title>
+    <!-- Tailwind CSS Engine for Standard Layout Styling -->
+    <script src="https://tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {"50":"#ecfeff","100":"#cffafe","200":"#a5f3fc","300":"#67e8f9","400":"#22d3ee","500":"#06b6d4","600":"#0891b2","700":"#0e7490","800":"#155e75","900":"#164e63","950":"#083344"}
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Smooth state transitions for theme toggle and skill bars */
+        .theme-transition { transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease; }
+        .skill-progress { transition: width 1.5s cubic-bezier(0.4, 0, 0.2, 1); }
+    </style>
+</head>
+<body class="theme-transition bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-50 min-h-screen font-sans">
+
+    <!-- NAVIGATION HEADER -->
+    <header class="sticky top-0 z-50 backdrop-blur-md bg-white/70 dark:bg-slate-950/70 border-b border-slate-200 dark:border-slate-800 theme-transition">
+        <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
+            <a href="#" class="text-xl font-bold tracking-tight text-primary-600 dark:text-primary-400">
+                Ademola<span class="text-xs font-normal text-slate-500 ml-1">.dev</span>
+            </a>
+            
+            <nav class="hidden md:flex items-center space-x-8 font-medium">
+                <a href="#about" class="hover:text-primary-500 transition">About</a>
+                <a href="#skills" class="hover:text-primary-500 transition">Skills</a>
+                <a href="#projects" class="hover:text-primary-500 transition">Projects</a>
+                <a href="#contact" class="hover:text-primary-500 transition">Contact</a>
+            </nav>
+
+            <div class="flex items-center space-x-4">
+                <!-- Theme Toggle Button -->
+                <button id="theme-toggle" class="p-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:ring-2 hover:ring-primary-400 transition" aria-label="Toggle Theme">
+                    <!-- Moon Icon (Shown in light mode) -->
+                    <svg id="theme-toggle-moon" class="w-5 h-5 hidden" fill="currentColor" viewBox="0 0 20 20"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"></path></svg>
+                    <!-- Sun Icon (Shown in dark mode) -->
+                    <svg id="theme-toggle-sun" class="w-5 h-5 hidden" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464a1 1 0 10-1.414-1.414l.707.707a1 1 0 001.414-1.414zm2.12 10.607a1 1 0 010-1.414l.706-.707a1 1 0 111.414 1.414l-.707.707a1 1 0 01-1.414 0zM4 11a1 1 0 100-2H3a1 1 0 100 2h1z" clip-rule="evenodd"></path></svg>
+                </button>
+                
+                <!-- Mobile Menu Button -->
+                <button id="mobile-menu-btn" class="md:hidden p-2 text-slate-600 dark:text-slate-400">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                </button>
+            </div>
+        </div>
+        
+        <!-- Mobile Navigation Menu -->
+        <div id="mobile-menu" class="hidden md:hidden px-4 pt-2 pb-4 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 space-y-3 flex flex-col font-medium">
+            <a href="#about" class="hover:text-primary-500 transition py-1">About</a>
+            <a href="#skills" class="hover:text-primary-500 transition py-1">Skills</a>
+            <a href="#projects" class="hover:text-primary-500 transition py-1">Projects</a>
+            <a href="#contact" class="hover:text-primary-500 transition py-1">Contact</a>
+        </div>
+    </header>
+
+    <main class="max-w-6xl mx-auto px-4 py-12 space-y-24">
+        
+        <!-- HERO / ABOUT SECTION -->
+        <section id="about" class="grid md:grid-cols-5 gap-12 items-center py-8">
+            <div class="md:col-span-3 space-y-6">
+                <div class="inline-flex items-center space-x-2 bg-primary-50 dark:bg-primary-950/50 border border-primary-200 dark:border-primary-800 px-3 py-1 rounded-full text-xs font-semibold text-primary-700 dark:text-primary-400">
+                    <span>Available for Freelance & Full-Time Work</span>
+                </div>
+                <h1 class="text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight leading-none">
+                    Hi, I'm <span class="text-transparent bg-clip-text bg-gradient-to-r from-primary-500 to-cyan-400">Ademola</span><br>
+                    <span class="text-2xl sm:text-3xl text-slate-500 dark:text-slate-400 font-medium">AKA Kelvin Tina</span>
+                </h1>
+                <p class="text-lg text-slate-600 dark:text-slate-400 max-w-xl">
+                    I am a professional **Web Developer** specializing in clean interfaces, optimized structures, and responsive layouts. Let's transform your ideas into exceptional digital assets.
+                </p>
+                <div class="flex flex-wrap gap-4 pt-2">
+                    <a href="#contact" class="px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white font-bold rounded-xl shadow-lg shadow-primary-600/20 hover:scale-[1.02] active:scale-[0.98] transition">
+                        Get In Touch
+                    </a>
+                    <!-- Downloadable Resume Button (Requires resume.pdf in same root directory) -->
+                    <a href="resume.pdf" download="Ademola_Kelvin_Tina_Resume.pdf" class="px-6 py-3 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 font-bold rounded-xl flex items-center space-x-2 hover:scale-[1.02] active:scale-[0.98] transition">
+                        <svg class="w-5 h-5 text-slate-600 dark:text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                        <span>Download Resume</span>
+                    </a>
+                </div>
+            </div>
+            <div class="md:col-span-2 flex justify-center">
+                <div class="relative w-64 h-64 md:w-80 md:h-80 rounded-3xl bg-gradient-to-tr from-primary-500 to-cyan-400 p-1 shadow-2xl">
+                    <div class="w-full h-full bg-slate-100 dark:bg-slate-900 rounded-[22px] flex items-center justify-center overflow-hidden">
+                        <!-- Custom Profile Visual Indicator -->
+                        <span class="text-7xl font-black text-slate-300 dark:text-slate-800">AK</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SKILLS PROGRESS METERS SECTION -->
+        <section id="skills" class="space-y-8 border-t border-slate-200 dark:border-slate-800 pt-16">
+            <div class="max-w-2xl">
+                <h2 class="text-3xl font-bold tracking-tight mb-2">Technical Proficiency</h2>
+                <p class="text-slate-600 dark:text-slate-400">My core web development competencies mapped out by practical production runtime experience.</p>
+            </div>
+            
+            <div class="grid md:grid-cols-2 gap-6 max-w-4xl">
+                <!-- Skill 1 -->
+                <div class="space-y-2">
+                    <div class="flex justify-between font-semibold">
+                        <span>HTML5 & Semantic Markup</span>
+                        <span class="text-primary-500">95%</span>
+                    </div>
+                    <div class="w-full h-3 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
+                        <div class="skill-progress h-full bg-primary-500 w-0" data-width="95%"></div>
+                    </div>
+                </div>
+                <!-- Skill 2 -->
+                <div class="space-y-2">
+                    <div class="flex justify-between font-semibold">
+                        <span>Standard CSS & Tailwind Layouts</span>
+                        <span class="text-primary-500">90%</span>
+                    </div>
+                    <div class="w-full h-3 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
+                        <div class="skill-progress h-full bg-primary-500 w-0" data-width="90%"></div>
+                    </div>
+                </div>
+                <!-- Skill 3 -->
+                <div class="space-y-2">
+                    <div class="flex justify-between font-semibold">
+                        <span>Vanilla JavaScript Engine Logic</span>
+                        <span class="text-primary-500">85%</span>
+                    </div>
+                    <div class="w-full h-3 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
+                        <div class="skill-progress h-full bg-primary-500 w-0" data-width="85%"></div>
+                    </div>
+                </div>
+                <!-- Skill 4 -->
+                <div class="space-y-2">
+                    <div class="flex justify-between font-semibold">
+                        <span>Responsive Interface Design</span>
+                        <span class="text-primary-500">90%</span>

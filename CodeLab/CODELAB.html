@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>CodeLab - Learn to Code</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%92%BB%3C/text%3E%3C/svg%3E">
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.12.4/dist/sweetalert2.all.min.js"></script>
+  <script src="https://js.paystack.co/v1/inline.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      box-sizing: border-box;
+      padding-top: env(safe-area-inset-top, 0px);
+      padding-bottom: env(safe-area-inset-bottom, 0px)
+    }
+
+    html,
+    body {
+      background: #0a0a0f
+    }
+
+    body {
+      font-family: 'Space Grotesk', system-ui, sans-serif;
+      color: #fff
+    }
+
+    .inp {
+      width: 100%;
+      padding: .75rem;
+      border-radius: .75rem;
+      background: rgba(0, 0, 0, .5);
+      border: 1px solid rgba(255, 255, 255, .1);
+      margin-bottom: .75rem;
+      color: #fff
+    }
+
+    .card {
+      border: 1px solid rgba(255, 255, 255, .1);
+      border-radius: 1.5rem;
+      padding: 1.5rem
+    }
+
+    .btn {
+      padding: .6rem 1.2rem;
+      border-radius: 9999px;
+      font-weight: 600;
+      background-color: #a707f1;
+      color:white
+    }
+
+    .btn2 {
+      padding: .5rem 1rem;
+      border-radius: 9999px;
+      border: 1px solid rgba(255, 255, 255, .2)
+    }
+
+    .swal2-popup {
+      background: #15151c !important;
+      color: #fff !important
+    }
+
+    .swal2-html-container,
+    .swal2-title {
+      color: #fff !important
+    }
+
+    /* ===== OFFLINE OVERLAY ===== */
+    #offlineOverlay {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      background: #0a0a0f;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 2rem;
+    }
+
+    #offlineOverlay.show {
+      display: flex;
+    }
+
+    #offlineOverlay svg {
+      width: 180px;
+      height: 180px;
+      margin-bottom: 1.5rem;
+      animation: float 3s ease-in-out 13s infinite;
+    }
+
+    @keyframes float {
+
+      0%,
+      100% {
+        transform: translateY(0)
+      }
+
+      50% {
+        transform: translateY(-12px)
+      }
+    }
+
+    #offlineOverlay .dot {
+      animation: blink 1.4s infinite;
+    }
+
+    #offlineOverlay .dot:nth-child(2) {
+      animation-delay: .2s
+    }
+
+    #offlineOverlay .dot:nth-child(3) {
+      animation-delay: .4s
+    }
+
+    @keyframes blink {
+
+      0%,
+      100% {
+        opacity: .2
+      }
+
+      50% {
+        opacity: 1
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <!-- Full-page offline cover: shown automatically when the browser loses connection -->
+  <div id="offlineOverlay">
+    <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" style="cursor: pointer;">
+      <circle cx="100" cy="100" r="90" fill="#15151c" stroke="red" stroke-width="3" opacity="1" />
+      <path d="M55 90a45 30 0 0190 0" fill="none" stroke="#9333ea" stroke-width="6" stroke-linecap="round"
+        opacity="1" />
+      <path d="M70 105a25 18 0 0160 0" fill="none" stroke="#9333ea" stroke-width="6" stroke-linecap="round" />
+      <circle cx="100" cy="130" r="8" fill="#9333ea" />
+      <line x1="45" y1="55" x2="155" y2="150" stroke="white" stroke-width="6" stroke-linecap="round" />
+    </svg>
+    <h2 style="font-size:1.75rem;font-weight:700;margin-bottom:.5rem;">No internet connection</h2>
+    <p style="color:rgba(255,255,255,.6);max-width:22rem;">CODELAB needs an active connection to load your
+      DataBase. Check your Wi-Fi or Mobile data<span class="dot">.</span><span class="dot">...</span><span
+        class="dot">.</span></p>
+    <button onclick="location.reload()" class="btn" style="margin-top:1.5rem; cursor: pointer;border: none;">Try again</button>
+  </div>
+
+  <nav id="nav" class="flex justify-between items-center p-4 md:p-6 border-b border-white/10"></nav>
+  <main id="main"></main>
+
+  <div id="authModal" class="fixed inset-0 bg-black/80 hidden items-center justify-center z-50 p-4">
+    <div class="bg-[#15151c] border border-white/10 rounded-3xl p-8 w-full max-w-md max-h-[95vh] overflow-y-auto">
+      <div class="flex justify-between mb-4">
+        <h3 id="mTitle" class="text-2xl font-bold"></h3><button onclick="closeAuth()" class="text-2xl">×</button>
+      </div>
+      <div id="roleRow" class="flex bg-black/50 rounded-full p-1 mb-4 text-sm"></div>
+      <input id="a_name" class="inp" placeholder="Full name">
+      <input id="a_email" type="email" class="inp" placeholder="Email">
+      <input id="a_pw" type="password" class="inp" placeholder="Password (min 6 chars)">
+      <select id="a_course" class="inp"></select>
+      <input id="a_code" class="inp" placeholder="Admin access code">
+      <button onclick="auth()" id="a_btn" class="btn w-full"></button>
+      <div class="flex items-center gap-3 my-3">
+        <div class="flex-1 h-px bg-white/10"></div><span class="text-xs text-white/40">or</span>
+        <div class="flex-1 h-px bg-white/10"></div>
+      </div>
+      <button onclick="googleAuth()" class="btn2 w-full flex items-center justify-center gap-2">
+        <svg width="18" height="18" viewBox="0 0 18 18">
+          <path fill="#4285F4"
+            d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84c-.21 1.13-.84 2.09-1.8 2.73v2.27h2.91c1.7-1.57 2.69-3.88 2.69-6.64z" />
+          <path fill="#34A853"
+            d="M9 18c2.43 0 4.47-.81 5.96-2.18l-2.91-2.27c-.81.54-1.84.86-3.05.86-2.35 0-4.34-1.59-5.05-3.72H.96v2.34C2.44 15.98 5.48 18 9 18z" />
+          <path fill="#FBBC05"
+            d="M3.95 10.69A5.4 5.4 0 013.68 9c0-.59.1-1.16.27-1.69V4.97H.96A9 9 0 000 9c0 1.45.35 2.83.96 4.03l2.99-2.34z" />
+          <path fill="#EA4335"
+            d="M9 3.58c1.32 0 2.51.46 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0 5.48 0 2.44 2.02.96 4.97l2.99 2.34C4.66 5.17 6.65 3.58 9 3.58z" />
+        </svg>
+        Continue with Google
+      </button>
+      <p id="a_err" class="text-red-400 text-sm mt-3 hidden"></p>
+      <p class="text-center mt-2"><a href="#" onclick="event.preventDefault();resetPw()"
+          class="text-xs text-white/40">Forgot password?</a></p>
+      <p class="text-white/40 text-sm mt-3 text-center"><a href="#" id="a_sw" class="text-purple-400"></a></p>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, sendPasswordResetEmail, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import { getFirestore, doc, getDoc, setDoc, addDoc, updateDoc, arrayUnion, collection, query, where, orderBy, limit, onSnapshot, runTransaction, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    // ===== CONFIG =====
+    const firebaseConfig = {
+      apiKey: "AIzaSyDNMHursDs-u-uneJbRhVNEfvW1VG_JFuY",
+      authDomain: "codelab-ae70e.firebaseapp.com",
+      projectId: "codelab-ae70e",
+      storageBucket: "codelab-ae70e.firebasestorage.app",
+      messagingSenderId: "200954216342",
+      appId: "1:200954216342:web:45408297556fa4308027b7"
+    };
+    const PASS_MARK = 50, MIN_DAYS = 180, PRICE = 30000, MAX_ADMINS = 2, ADMIN_CODE = 'CODELAB-ADMIN';
+    const COURSES = ['Python', 'AI LEARNING', 'Web Development', 'Programming', 'DATA Analysis'];
+    const PAYSTACK_KEY = 'pk_test_2a34485ccc9767ef38045760c94a6d324c4b1d76';
+
+    const fbApp = initializeApp(firebaseConfig), au = getAuth(fbApp), fs = getFirestore(fbApp);
+    const $ = id => document.getElementById(id);
+    const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const uid = p => p + '_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+    const fmt = t => new Date(t).toLocaleString();
+    const url = l => esc(/^https?:/.test(l) ? l : 'https://' + l);
+    const fresh = () => ({ me: null, users: [], materials: [], tasks: [], subs: [], log: [], ann: [], classes: [], att: [], msgs: [] });
+    let db = fresh(), unsubs = [], certBusy = false;
+
+    // ===== OFFLINE DETECTION =====
+
+    function setOffline(isOffline) {
+      $('offlineOverlay').classList.toggle('show', isOffline);
+    }
+    window.addEventListener('offline', () => setOffline(true));
+    window.addEventListener('online', () => { setOffline(false); toast('Back online', 'success'); });
+    setOffline(!navigator.onLine); // page load
+
+    function img(file, max) { return new Promise((res, rej) => { const r = new FileReader(); r.onerror = rej; r.onload = () => { const i = new Image(); i.onerror = rej; i.onload = () => { const k = Math.min(1, max / Math.max(i.width, i.height)), c = document.createElement('canvas'); c.width = i.width * k; c.height = i.height * k; c.getContext('2d').drawImage(i, 0, 0, c.width, c.height); res(c.toDataURL('image/jpeg', .75)) }; i.src = r.result }; r.readAsDataURL(file) }) }
+    const av = (u, s = 40) => u?.avatar ? `<img src="${u.avatar}" class="rounded-full object-cover" style="width:${s}px;height:${s}px">` : `<div class="rounded-full bg-purple-600 flex items-center justify-center font-bold" style="width:${s}px;height:${s}px">${esc((u?.name || '?')[0].toUpperCase())}</div>`;
+    const uref = () => doc(fs, 'users', au.currentUser.uid);
+    const toast = (title, icon = 'success') => Swal.fire({ toast: true, position: 'top-end', icon, title, showConfirmButton: false, timer: 2200, timerProgressBar: true });
+    const log = (action, u = db.me) => u ? addDoc(collection(fs, 'log'), { t: Date.now(), uid: u.uid, name: u.name, id: u.id, role: u.role, action }).catch(() => { }) : Promise.resolve();
+
+    // ===== DERIVED =====
+    const payment = u => u.paidAt ? { date: u.paidAt } : null;
+    function prog(u) {
+      const ms = db.materials.filter(m => m.course === u.course), ts = db.tasks.filter(t => t.course === u.course);
+      const d = ms.filter(m => (u.done || []).includes(m.id)).length + ts.filter(t => db.subs.some(s => s.taskId === t.id && s.uid === u.uid)).length, total = ms.length + ts.length;
+      return { total, d, pct: total ? Math.round(d / total * 100) : 0 };
+    }
+    function grades(u) { const s = db.subs.filter(x => x.uid === u.uid), g = s.filter(x => x.score != null); return { n: s.length, g: g.length, avg: g.length ? Math.round(g.reduce((a, x) => a + x.score, 0) / g.length) : null } }
+    function attRate(u) { const a = db.att.filter(x => x.uid === u.uid); return a.length ? Math.round(a.filter(x => x.status === 'present').length / a.length * 100) : null }
+    function eligibility(u) {
+      const p = payment(u), pr = prog(u); if (!p) return { ok: false, days: 0, pr };
+      const days = (Date.now() - p.date) / 864e5, g = grades(u), gradedOk = g.g === g.n && (g.avg === null || g.avg >= PASS_MARK);
+      return { ok: pr.total > 0 && pr.pct === 100 && days >= MIN_DAYS && gradedOk, days, pr };
+    }
+
+    // ===== AUTH =====
+    let A = { mode: 'signup', role: 'student' }, adminFull = false;
+    async function openAuth(mode) {
+      A.mode = mode; syncAuth(); $('authModal').classList.replace('hidden', 'flex');
+      try { const m = await getDoc(doc(fs, 'meta', 'admins')); adminFull = (m.data()?.count ?? 0) >= MAX_ADMINS } catch { }
+      if (adminFull && A.role === 'admin') A.role = 'student'; syncAuth();
+    }
+    const closeAuth = () => $('authModal').classList.replace('flex', 'hidden');
+    const setRole = r => { A.role = r; syncAuth() };
+    function syncAuth() {
+      const su = A.mode === 'signup';
+      $('mTitle').textContent = su ? 'Create Account' : 'Welcome Back'; $('a_btn').textContent = su ? 'Create Account' : 'Login';
+      $('a_sw').textContent = su ? 'Already have an account? Log in' : 'New here? Sign up';
+      $('a_sw').onclick = e => { e.preventDefault(); openAuth(su ? 'login' : 'signup') };
+      $('roleRow').style.display = su ? 'flex' : 'none';
+      $('roleRow').innerHTML = ['student', 'tutor', 'admin'].filter(r => r !== 'admin' || !adminFull).map(r => `<button onclick="setRole('${r}')" class="flex-1 py-2 rounded-full capitalize ${A.role === r ? 'bg-white text-black font-semibold' : 'text-white/60'}">${r}</button>`).join('');
+      $('a_name').style.display = su ? '' : 'none';
+      $('a_course').style.display = su && A.role !== 'admin' ? '' : 'none';
+      $('a_course').innerHTML = `<option value="">Select ${A.role === 'tutor' ? 'the course you teach' : 'your course'}</option>` + COURSES.map(c => `<option>${c}</option>`).join('');
+      $('a_code').style.display = su && A.role === 'admin' ? '' : 'none'; $('a_err').classList.add('hidden');
+    }
+    const aerr = m => { $('a_err').textContent = m; $('a_err').classList.remove('hidden'); toast(m, 'error') };
+    async function auth() {
+      const name = $('a_name').value.trim(), email = $('a_email').value.trim().toLowerCase(), pw = $('a_pw').value;
+      if (!/^\S+@\S+\.\S+$/.test(email)) return aerr('Enter a valid email.');
+      if (pw.length < 6) return aerr('Password must be at least 6 characters.');
+      if (A.mode === 'login') {
+        try { const c = await signInWithEmailAndPassword(au, email, pw); const s = await getDoc(doc(fs, 'users', c.user.uid)); if (s.exists()) { log('Logged in', s.data()); toast('Welcome back, ' + s.data().name + '!') } closeAuth() }
+        catch { aerr('Incorrect email or password.') } return;
+      }
+      const role = A.role;
+      if (!name) return aerr('Enter your name.');
+      if (role !== 'admin' && !$('a_course').value) return aerr('Select a course.');
+      if (role === 'admin' && $('a_code').value !== ADMIN_CODE) return aerr('Wrong admin access code.');
+      let cred; try { cred = await createUserWithEmailAndPassword(au, email, pw) } catch (e) { return aerr(e.code === 'auth/email-already-in-use' ? 'Account already exists. Log in instead.' : e.message) }
+      const u = { uid: cred.user.uid, id: (role === 'admin' ? 'CLA-' : role === 'tutor' ? 'CLM-' : 'CLS-') + Math.floor(1e5 + Math.random() * 9e5), name, email, role, course: role === 'admin' ? null : $('a_course').value, joined: Date.now(), done: [], avatar: null, cert: null, paidAt: null, active: true };
+      const ref = doc(fs, 'users', u.uid);
+      try {
+        if (role === 'admin') await runTransaction(fs, async tx => { // atomic: two people can't both grab the last slot
+          const m = doc(fs, 'meta', 'admins'), s = await tx.get(m), c = s.exists() ? s.data().count : 0;
+          if (c >= MAX_ADMINS) throw new Error('LIMIT'); tx.update(m, { count: c + 1 }); tx.set(ref, u);
+        }); else await setDoc(ref, u);
+        log(`Signed up as ${role}${u.course ? ' (' + u.course + ')' : ''}`, u); closeAuth();
+        Swal.fire({ title: `Welcome, ${u.name}!`, text: `Your CodeLab ID is ${u.id}. Keep it safe.`, icon: 'success' });
+      } catch (e) { await cred.user.delete().catch(() => { }); aerr(e.message === 'LIMIT' ? `Admin limit reached: only ${MAX_ADMINS} admin accounts are allowed.` : 'Signup failed: ' + e.message) }
+    }
+    const googleProvider = new GoogleAuthProvider();
+    async function googleAuth() {
+      let role = A.role, course = A.role !== 'admin' ? $('a_course').value : null;
+      if (A.mode === 'signup') {
+        if (role !== 'admin' && !course) return aerr('Select a course first, then continue with Google.');
+        if (role === 'admin' && $('a_code').value !== ADMIN_CODE) return aerr('Enter the admin access code first, then continue with Google.');
+      }
+      let cred; try { cred = await signInWithPopup(au, googleProvider) } catch (e) { return aerr('Google sign-in failed: ' + e.message) }
+      const existing = await getDoc(doc(fs, 'users', cred.user.uid));
+      if (existing.exists()) { log('Logged in', existing.data()); toast('Welcome back, ' + existing.data().name + '!'); closeAuth(); return }
+      if (A.mode === 'login') { aerr('No CodeLab account for this Google account yet. Switch to Sign Up.'); return }
+      const guessedName = cred.user.displayName || (cred.user.email ? cred.user.email.split('@')[0] : 'Student');
+      const u = { uid: cred.user.uid, id: (role === 'admin' ? 'CLA-' : role === 'tutor' ? 'CLM-' : 'CLS-') + Math.floor(1e5 + Math.random() * 9e5), name: guessedName, email: cred.user.email, role, course: role === 'admin' ? null : course, joined: Date.now(), done: [], avatar: cred.user.photoURL || null, cert: null, paidAt: null, active: true };
+      const ref = doc(fs, 'users', u.uid);
+      try {
+        if (role === 'admin') await runTransaction(fs, async tx => {
+          const m = doc(fs, 'meta', 'admins'), s = await tx.get(m), c = s.exists() ? s.data().count : 0;
+          if (c >= MAX_ADMINS) throw new Error('LIMIT'); tx.update(m, { count: c + 1 }); tx.set(ref, u);
+        }); else await setDoc(ref, u);
+        log(`Signed up as ${role}${u.course ? ' (' + u.course + ')' : ''}`, u); closeAuth();
+        Swal.fire({ title: `Welcome, ${u.name}!`, text: `Your CodeLab ID is ${u.id}. Keep it safe.`, icon: 'success' });
+      } catch (e) { aerr(e.message === 'LIMIT' ? `Admin limit reached: only ${MAX_ADMINS} admin accounts are allowed.` : 'Signup failed: ' + e.message) }
+    }
+    const logout = async () => {
+      const r = await Swal.fire({ title: 'Log out?', icon: 'question', showCancelButton: true, confirmButtonText: 'Log out' });
+      if (!r.isConfirmed) return;
+      try { await log('Logged out') } catch { }   // never let logging block logout
+      try { await signOut(au) } catch { }
+      db = fresh(); render(); toast('Logged out', 'info');
+    };
+
+     //DATA
+    function watch(name, q) { unsubs.push(onSnapshot(q, s => { db[name] = s.docs.map(d => d.data()); render() }, e => console.warn(name, e.message))) }
+    function startWatch(u) {
+      const C = n => collection(fs, n);
+      if (u.role === 'admin') { watch('ann', C('announcements')); watch('classes', C('classes')); watch('att', C('attendance')); watch('users', C('users')); watch('materials', C('materials')); watch('tasks', C('tasks')); watch('subs', C('subs')); watch('log', query(C('log'), orderBy('t', 'desc'), limit(200))) }
+      else {
+        watch('materials', query(C('materials'), where('course', '==', u.course))); watch('tasks', query(C('tasks'), where('course', '==', u.course)));
+        watch('ann', query(C('announcements'), where('course', 'in', [u.course, 'all']))); watch('msgs', query(C('messages'), where('course', '==', u.course))); watch('classes', query(C('classes'), where('course', '==', u.course)));
+        watch('att', u.role === 'tutor' ? query(C('attendance'), where('course', '==', u.course)) : query(C('attendance'), where('uid', '==', u.uid)));
+        if (u.role === 'tutor') { watch('users', query(C('users'), where('role', '==', 'student'), where('course', '==', u.course))); watch('subs', query(C('subs'), where('course', '==', u.course))) }
+        else watch('subs', query(C('subs'), where('uid', '==', u.uid)));
+      }
+    }
+    onAuthStateChanged(au, user => {
+      unsubs.forEach(f => f()); unsubs = []; db = fresh(); render();
+      if (!user) return; let started = false;
+      unsubs.push(onSnapshot(doc(fs, 'users', user.uid), s => { db.me = s.exists() ? s.data() : null; if (db.me && !started) { started = true; startWatch(db.me) } render() }));
+    });
+
+    // ===== ACTIONS =====
+    async function profile() {
+      const u = db.me;
+      const r = await Swal.fire({ title: 'Profile', html: `<div class="flex justify-center mb-3">${av(u, 96)}</div><input type="file" id="pf" accept="image/*" class="text-sm mb-3"><input id="pn" class="inp" placeholder="Full name" value="${esc(u.name)}">`, showCancelButton: true, confirmButtonText: 'Save', preConfirm: async () => { const f = $('pf').files[0], name = $('pn').value.trim(); if (!name) return Swal.showValidationMessage('Name cannot be empty'); return { name, avatar: f ? await img(f, 200) : undefined } } });
+      if (r.isConfirmed) {
+        const patch = { name: r.value.name }; if (r.value.avatar) patch.avatar = r.value.avatar;
+        await updateDoc(uref(), patch); log('Updated profile'); toast('Profile updated');
+      }
+    }
+    async function pay() {
+      const u = db.me; if (!window.PaystackPop) return Swal.fire('Paystack failed to load', 'Check your connection or ad-blocker.', 'error');
+      PaystackPop.setup({
+        key: PAYSTACK_KEY, email: u.email, amount: PRICE * 100, currency: 'NGN', ref: 'CL_' + Date.now(), onClose() { toast('Payment cancelled', 'info') },
+        callback(r) { addDoc(collection(fs, 'payments'), { uid: u.uid, amount: PRICE, ref: r.reference, date: Date.now() }); updateDoc(uref(), { paidAt: Date.now() }); log(`Paid ₦${PRICE.toLocaleString()} (ref ${r.reference})`); Swal.fire('Payment successful', 'Ref: ' + r.reference, 'success') }
+      }).openIframe();
+    }
+    async function complete(id) { const u = db.me; if ((u.done || []).includes(id)) return; await updateDoc(uref(), { done: arrayUnion(id) }); log('Completed material: ' + db.materials.find(m => m.id === id)?.title); toast('Marked complete') }
+    async function submitTask(id) {
+      const u = db.me, t = db.tasks.find(x => x.id === id);
+      const r = await Swal.fire({
+        title: 'Submit proof', html: `<p class="text-sm text-white/60 mb-3">${esc(t.title)}</p><textarea id="sp_n" class="inp" rows="3" placeholder="Describe what you did (min 20 characters)"></textarea><input id="sp_l" class="inp" placeholder="Link to work (GitHub, Drive, live demo)"><label class="text-xs text-white/50">Or screenshot:</label><input type="file" id="sp_f" accept="image/*" class="text-sm">`, showCancelButton: true, confirmButtonText: 'Submit',
+        preConfirm: async () => { const note = $('sp_n').value.trim(), link = $('sp_l').value.trim(), f = $('sp_f').files[0]; if (note.length < 20) return Swal.showValidationMessage('Write at least 20 characters describing your attempt'); if (!link && !f) return Swal.showValidationMessage('Add a link or screenshot as proof'); return { note, link, shot: f ? await img(f, 700) : null } }
+      });
+      if (!r.isConfirmed) return; const sid = uid('s');
+      await setDoc(doc(fs, 'subs', sid), { id: sid, taskId: id, uid: u.uid, course: u.course, ...r.value, date: Date.now() }); log('Submitted proof for task: ' + t.title); Swal.fire('Proof submitted', 'Your tutor will review and grade it.', 'success');
+    }
+    function viewProof(id) {
+      const s = db.subs.find(x => x.id === id), u = db.users.find(x => x.uid === s.uid) || db.me, t = db.tasks.find(x => x.id === s.taskId);
+      Swal.fire({ title: esc(t?.title), html: `<div class="text-left text-sm"><p class="text-white/50 mb-2">${esc(u?.name)} · ${fmt(s.date)}</p><p class="mb-2">${esc(s.note)}</p>${s.score != null ? `<p class="mb-2 text-green-400">Score: ${s.score}/100 — ${esc(s.feedback)}</p>` : ''}${s.link ? `<a class="text-purple-400" target="_blank" rel="noopener" href="${url(s.link)}">Open link →</a>` : ''}${s.shot ? `<img src="${s.shot}" class="mt-3 rounded-xl max-w-full">` : ''}</div>` });
+    }
+    async function addItem(kind) {
+      const u = db.me, t = $(kind + '_t').value.trim(), d = $(kind + '_d').value.trim(), l = kind === 'm' ? $('m_l').value.trim() : '';
+      if (!t || (kind === 'm' && !l)) return Swal.fire('Missing info', kind === 'm' ? 'Title and link are required.' : 'Title is required.', 'warning');
+      const id = uid(kind); await setDoc(doc(fs, kind === 'm' ? 'materials' : 'tasks', id), { id, course: u.course, title: t, desc: d, link: l, by: u.name, byUid: u.uid, date: Date.now(), due: kind === 't' ? ($('t_due')?.value || null) : null });
+      log(`Uploaded ${kind === 'm' ? 'material' : 'task'}: ${t}`); toast(kind === 'm' ? 'Material uploaded' : 'Task assigned'); ['_t', '_d', '_l'].forEach(s => { const el = $(kind + s); if (el) el.value = '' });
+    }
+
+    // ===== SCHOOL MANAGEMENT =====
+    let attDate = new Date().toISOString().slice(0, 10);
+    const setAttDate = v => { attDate = v || attDate; render(true) };
+    function resetPw() {
+      const e = $('a_email').value.trim(); if (!e) return aerr('Type your email above first.');
+      sendPasswordResetEmail(au, e).then(() => Swal.fire('Check your email', 'A reset link was sent if the account exists.', 'success')).catch(x => aerr(x.message));
+    }
+    async function postAnn() {
+      const u = db.me, t = $('n_t').value.trim(), b = $('n_b').value.trim(); if (!t || !b) return Swal.fire('Missing info', 'Add a title and a message.', 'warning');
+      const id = uid('n'), course = u.role === 'admin' ? ($('n_c')?.value || 'all') : u.course;
+      await setDoc(doc(fs, 'announcements', id), { id, title: t, body: b, course, by: u.name, role: u.role, byUid: u.uid, date: Date.now() });
+      log('Posted announcement: ' + t); toast('Announcement posted'); $('n_t').value = ''; $('n_b').value = '';
+    }
+    async function postClass() {
+      const u = db.me, t = $('c_t').value.trim(), when = new Date($('c_d').value).getTime(), l = $('c_l').value.trim();
+      if (!t || isNaN(when)) return Swal.fire('Missing info', 'Add a topic and a date/time.', 'warning');
+      const id = uid('c'); await setDoc(doc(fs, 'classes', id), { id, course: u.course, title: t, when, link: l, by: u.name, byUid: u.uid });
+      log('Scheduled class: ' + t); toast('Class scheduled'); ['c_t', 'c_d', 'c_l'].forEach(i => $(i).value = '');
+    }
+    async function markAtt(sid, status) {
+      const id = attDate + '_' + sid; await setDoc(doc(fs, 'attendance', id), { id, date: attDate, uid: sid, course: db.me.course, status, by: db.me.name });
+      log(`Marked ${db.users.find(x => x.uid === sid)?.name} ${status} (${attDate})`); toast(`${db.users.find(x => x.uid === sid)?.name}: ${status}`, status === 'present' ? 'success' : 'info');
+    }
+    async function grade(id) {
+      const s = db.subs.find(x => x.id === id);
+      const r = await Swal.fire({
+        title: 'Grade submission', html: `<input id="g_s" type="number" min="0" max="100" class="inp" placeholder="Score (0-100)" value="${s.score ?? ''}"><textarea id="g_f" class="inp" rows="3" placeholder="Feedback for the student">${esc(s.feedback || '')}</textarea>`, showCancelButton: true, confirmButtonText: 'Save grade',
+        preConfirm: () => { const v = parseInt($('g_s').value); if (isNaN(v) || v < 0 || v > 100) return Swal.showValidationMessage('Score must be 0-100'); return { score: v, feedback: $('g_f').value.trim() } }
+      });
+      if (r.isConfirmed) { await updateDoc(doc(fs, 'subs', id), { ...r.value, gradedBy: db.me.name, gradedAt: Date.now() }); log(`Graded ${db.users.find(x => x.uid === s.uid)?.name}: ${r.value.score}/100`); toast('Grade saved') }
+    }
+    async function toggleActive(id, val) { if (!val && !(await Swal.fire({ title: 'Suspend this account?', text: 'They will be locked out until reactivated.', icon: 'warning', showCancelButton: true, confirmButtonText: 'Suspend' })).isConfirmed) return; await updateDoc(doc(fs, 'users', id), { active: val }); log(`${val ? 'Reactivated' : 'Suspended'} account ${db.users.find(x => x.uid === id)?.name}`); toast(val ? 'Account reactivated' : 'Account suspended', val ? 'success' : 'warning') }
+    function exportCSV() {
+      const rows = [['ID', 'Name', 'Email', 'Course', 'Paid', 'Progress %', 'Attendance %', 'Avg score', 'Certified']];
+      db.users.filter(x => x.role === 'student').forEach(s => rows.push([s.id, s.name, s.email, s.course, payment(s) ? 'yes' : 'no', prog(s).pct, attRate(s) ?? '', grades(s).avg ?? '', s.cert ? 'yes' : 'no']));
+      const csv = rows.map(r => r.map(v => '"' + String(v).replace(/"/g, '""') + '"').join(',')).join('\n');
+      const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' })); a.download = 'codelab-students.csv'; a.click(); toast('CSV downloaded');
+    }
+    const annList = () => [...db.ann].sort((a, b) => b.date - a.date).slice(0, 6).map(n => `<div class="text-sm border-b border-white/5 pb-2"><b>${esc(n.title)}</b> <span class="text-xs text-white/40">${esc(n.by)} · ${esc(n.course)} · ${fmt(n.date)}</span><p class="text-white/70">${esc(n.body)}</p></div>`).join('') || '<p class="text-white/40 text-sm">No announcements.</p>';
+    const clsList = () => db.classes.filter(c => c.when > Date.now() - 36e5).sort((a, b) => a.when - b.when).map(c => `<div class="text-sm border-b border-white/5 pb-2"><b>${esc(c.title)}</b><br><span class="text-xs text-white/50">${fmt(c.when)}</span> ${c.link ? `<a class="text-purple-400 text-xs" target="_blank" rel="noopener" href="${url(c.link)}">Join →</a>` : ''}</div>`).join('') || '<p class="text-white/40 text-sm">No upcoming classes.</p>';
+    const annForm = admin => `<h3 class="font-bold mt-6 mb-3">Post announcement</h3>${admin ? `<select id="n_c" class="inp"><option value="all">Everyone</option>${COURSES.map(c => `<option>${c}</option>`).join('')}</select>` : ''}<input id="n_t" class="inp" placeholder="Title"><textarea id="n_b" class="inp" rows="2" placeholder="Message"></textarea><button onclick="postAnn()" class="btn w-full">Post</button>`;
+    const classForm = () => `<h3 class="font-bold mt-6 mb-3">Schedule a class</h3><input id="c_t" class="inp" placeholder="Topic"><input id="c_d" type="datetime-local" class="inp"><input id="c_l" class="inp" placeholder="Meeting link (Zoom, Meet)"><button onclick="postClass()" class="btn w-full">Schedule</button>`;
+    function attCard(studs) {
+      const rows = studs.map(s => { const r = db.att.find(a => a.id === attDate + '_' + s.uid), ar = attRate(s); return `<div class="flex justify-between items-center text-sm border-b border-white/5 py-2"><span>${esc(s.name)} <span class="text-xs text-white/40">${ar == null ? '' : ar + '%'}</span></span><span><button onclick="markAtt('${s.uid}','present')" class="px-3 py-1 rounded-full ${r?.status === 'present' ? 'bg-green-500/30 text-green-400' : 'bg-white/10'}">Present</button> <button onclick="markAtt('${s.uid}','absent')" class="px-3 py-1 rounded-full ${r?.status === 'absent' ? 'bg-red-500/30 text-red-400' : 'bg-white/10'}">Absent</button></span></div>` }).join('') || '<p class="text-white/40 text-sm">No students.</p>';
+      return `<div class="card"><div class="flex justify-between items-center mb-3"><h3 class="font-bold">Attendance</h3><input type="date" value="${attDate}" onchange="setAttDate(this.value)" class="inp !mb-0 !w-auto"></div>${rows}</div>`;
+    }
+    function schoolPanel(u) {
+      const g = grades(u), ar = attRate(u);
+      return `<div class="grid md:grid-cols-2 gap-4 mb-8"><div class="card"><h3 class="font-bold mb-3">📢 Announcements</h3><div class="space-y-2">${annList()}</div></div><div class="card"><h3 class="font-bold mb-3">🗓 Upcoming classes</h3><div class="space-y-2">${clsList()}</div><p class="text-sm text-white/60 mt-4">Attendance: <b>${ar == null ? '—' : ar + '%'}</b> · Task average: <b>${g.avg == null ? '—' : g.avg + '/100'}</b> (pass mark ${PASS_MARK})</p></div></div>`;
+    }
+
+    // ===== EXTRA FEATURES =====
+    async function sendMsg() {
+      const u = db.me, tx = $('msg_t').value.trim(); if (!tx) return;
+      const id = uid('g'); await setDoc(doc(fs, 'messages', id), { id, course: u.course, uid: u.uid, name: u.name, role: u.role, text: tx.slice(0, 500), date: Date.now() });
+      $('msg_t').value = ''; render(true);
+    }
+    const chatCard = () => `<div class="card"><h3 class="font-bold mb-3">💬 Course discussion</h3><div class="space-y-2 max-h-64 overflow-y-auto mb-3">${[...db.msgs].sort((a, b) => a.date - b.date).slice(-30).map(m => `<div class="text-sm"><b class="${m.role === 'tutor' ? 'text-purple-400' : ''}">${esc(m.name)}${m.role === 'tutor' ? ' (tutor)' : ''}</b> <span class="text-xs text-white/40">${fmt(m.date)}</span><p class="text-white/80">${esc(m.text)}</p></div>`).join('') || '<p class="text-white/40 text-sm">No messages yet. Say hi!</p>'}</div><div class="flex gap-2"><input id="msg_t" class="inp !mb-0" placeholder="Write a message" onkeydown="if(event.key==='Enter')sendMsg()"><button onclick="sendMsg()" class="btn">Send</button></div></div>`;
+    async function delItem(kind, id) {
+      const r = await Swal.fire({ title: 'Delete this upload?', text: 'Students will no longer see it.', icon: 'warning', showCancelButton: true, confirmButtonText: 'Delete' });
+      if (!r.isConfirmed) return; await deleteDoc(doc(fs, kind === 'm' ? 'materials' : 'tasks', id)); log('Deleted ' + (kind === 'm' ? 'material' : 'task')); toast('Deleted', 'info');
+    }
+    const myUploads = u => {
+      const items = [...db.materials.map(x => ({ ...x, k: 'm' })), ...db.tasks.map(x => ({ ...x, k: 't' }))].filter(x => x.byUid === u.uid).sort((a, b) => b.date - a.date);
+      return `<h3 class="font-bold mt-6 mb-3">Your uploads (${items.length})</h3><div class="space-y-1">${items.map(x => `<div class="flex justify-between text-sm"><span>${x.k === 'm' ? '📄' : '📝'} ${esc(x.title)}</span><button class="text-red-400" onclick="delItem('${x.k}','${x.id}')">Delete</button></div>`).join('') || '<p class="text-white/40 text-sm">Nothing yet.</p>'}</div>`;
+    };
+    async function verifyCert() {
+      const r = await Swal.fire({ title: 'Verify a certificate', input: 'text', inputPlaceholder: 'e.g. CLC-1234567', showCancelButton: true, confirmButtonText: 'Verify' });
+      if (!r.isConfirmed || !r.value) return;
+      const s = await getDoc(doc(fs, 'certs', r.value.trim().toUpperCase()));
+      if (!s.exists()) return Swal.fire('Not found', 'No certificate with that ID.', 'error');
+      const c = s.data(); Swal.fire({ icon: 'success', title: 'Valid certificate', html: `<b>${esc(c.name)}</b> completed the ${esc(c.course)} programme on ${new Date(c.date).toLocaleDateString()}.` });
+    }
+    const dueTag = (t, s) => { if (!t.due) return ''; const late = !s && new Date(t.due + 'T23:59:59') < Date.now(); return `<p class="text-xs mt-1 ${late ? 'text-red-400' : 'text-white/40'}">Due ${esc(t.due)}${late ? ' · overdue' : ''}</p>`; };
+
+    // ===== CERTIFICATE =====
+    const certHtml = u => `<div class="rounded-2xl p-6 text-center" style="border:3px double #a855f7;background:#0f0f18"><p class="text-purple-400 tracking-widest text-xs">CODELAB.DEV</p><h2 class="text-2xl font-bold my-2">Certificate of Completion</h2><p class="text-white/60 text-sm">This certifies that</p><p class="text-3xl font-bold my-2 text-purple-300">${esc(u.name)}</p><p class="text-white/60 text-sm">has successfully completed the 6-month</p><p class="text-xl font-semibold my-1">${esc(u.course)} Software Development Programme</p><p class="text-xs text-white/40 mt-4">Issued ${new Date(u.cert.date).toLocaleDateString()} · ID ${u.cert.id}</p></div>`;
+    const showCert = first => { const u = db.me; Swal.fire({ width: 620, html: (first ? `<h2 class="text-2xl font-bold mb-1">🎉 Congratulations, ${esc(u.name.split(' ')[0])}!</h2><p class="text-white/70 mb-4">You are now a certified software developer.</p>` : '') + certHtml(u), confirmButtonText: first ? 'Awesome!' : 'Close' }) };
+    async function checkCert(u) {
+      if (certBusy || u.cert || !eligibility(u).ok) return; certBusy = true;
+      const cert = { id: 'CLC-' + Math.floor(1e6 + Math.random() * 9e6), date: Date.now() };
+      await updateDoc(uref(), { cert }); await setDoc(doc(fs, 'certs', cert.id), { id: cert.id, uid: u.uid, name: u.name, course: u.course, date: cert.date }); db.me.cert = cert; log('Earned certification in ' + u.course); showCert(true);
+    }
+
+    // ===== VIEWS =====
+    const badge = (ok, y, n) => `<span class="px-3 py-1 rounded-full text-xs font-semibold ${ok ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}">${ok ? y : n}</span>`;
+    const bar = (p, c) => `<div class="h-3 rounded-full bg-white/10 overflow-hidden"><div class="h-full ${c} rounded-full" style="width:${p}%"></div></div>`;
+    function navHtml(u) {
+      const logo = `<h1 class="text-xl md:text-2xl font-bold">&lt;/&gt; CodeLab<span class="text-purple-500">.Dev</span></h1>`;
+      if (!au.currentUser) return logo + `<div class="flex gap-2"><button class="btn2" onclick="openAuth('login')">Login</button><button class="btn !bg-white !text-black" onclick="openAuth('signup')">Sign Up</button></div>`;
+      return logo + `<div class="flex items-center gap-3">${u ? `<button onclick="profile()" title="Change profile picture">${av(u, 36)}</button><span class="text-sm text-white/60 hidden md:inline">${esc(u.name)} · ${u.id}</span>` : ''}<button class="btn2" onclick="logout()">Logout</button></div>`;
+    }
+    const landing = () => `<section class="text-center py-20 px-6"><h2 class="text-5xl md:text-7xl font-bold leading-tight">Learn to Code.<br><span class="text-purple-400">Build the Future.</span></h2><p class="text-white/60 mt-6 max-w-xl mx-auto">A 6-month mentor-led programme in All course of choice. Complete every lesson and task, and earn your certificate.</p><button onclick="openAuth('signup')" class="btn !px-8 !py-4 mt-8 text-lg">Start Learning →</button><br><button onclick="verifyCert()" class="btn2 mt-4 text-sm">🔍 Verify a certificate</button></section>
+<section class="max-w-4xl mx-auto p-6 grid md:grid-cols-2 gap-6"><div class="card"><h3 class="text-2xl font-bold">What you get</h3><ul class="text-white/70 mt-4 space-y-2 list-disc pl-5"><li> Dedicated Tutors</li><li>Materials and tasks with proof of work</li><li>Progress tracking and a certificate after 6 months</li></ul></div><div class="bg-white text-black p-8 rounded-3xl"><h3 class="text-2xl font-bold">Full access</h3><p class="text-4xl font-bold mt-4">₦${PRICE.toLocaleString()}</p><button onclick="openAuth('signup')" class="mt-6 w-full py-3 bg-black text-white rounded-full">Sign up to enroll</button></div></section>`;
+
+    function studentV(u) {
+      const paid = !!payment(u), e = eligibility(u), pr = e.pr;
+      const head = `<div class="card flex flex-wrap items-center justify-between gap-4 mb-6"><div class="flex items-center gap-4">${av(u, 64)}<div><h2 class="text-2xl font-bold">${esc(u.name)}</h2><p class="text-white/50 text-sm">${u.id} · ${esc(u.course)}</p></div></div>${badge(paid, 'Paid', 'Not paid')}</div>`;
+      if (!paid) return `<div class="max-w-5xl mx-auto p-6">${head}<div class="card text-center bg-purple-500/10"><h3 class="text-xl font-bold">Course materials are locked</h3><p class="text-white/60 mt-2">Pay ₦${PRICE.toLocaleString()} to unlock lessons and tasks.</p><button onclick="pay()" class="btn mt-6">Pay ₦${PRICE.toLocaleString()}</button></div></div>`;
+      const ms = db.materials.filter(m => m.course === u.course).sort((a, b) => b.date - a.date), ts = db.tasks.filter(t => t.course === u.course).sort((a, b) => b.date - a.date);
+      const tp = Math.min(100, Math.round(e.days / MIN_DAYS * 100)), left = Math.max(0, Math.ceil(MIN_DAYS - e.days));
+      return `<div class="max-w-5xl mx-auto p-6">${head}<div class="grid md:grid-cols-2 gap-4 mb-8"><div class="card"><div class="flex justify-between text-sm text-white/60 mb-2"><span>Coursework (${pr.d}/${pr.total})</span><span>${pr.pct}%</span></div>${bar(pr.pct, 'bg-purple-500')}</div><div class="card"><div class="flex justify-between text-sm text-white/60 mb-2"><span>Time towards certification</span><span>${left ? left + ' days left' : 'Complete'}</span></div>${bar(tp, 'bg-green-500')}${u.cert ? `<button onclick="showCert(false)" class="btn mt-3 w-full">🎓 View my certificate</button>` : `<p class="text-xs text-white/40 mt-3">Certificate unlocks after ${MIN_DAYS} days, 100% of materials and tasks, and a graded task average of at least ${PASS_MARK}.</p>`}</div></div>
+  ${schoolPanel(u)}<div class="mb-8">${chatCard()}</div><h3 class="text-xl font-bold mb-3">Tasks</h3><div class="space-y-3 mb-8">${ts.map(t => { const s = db.subs.find(x => x.taskId === t.id && x.uid === u.uid); return `<div class="card !p-5 flex justify-between items-start gap-4"><div><h4 class="font-bold">${esc(t.title)}</h4><p class="text-white/60 text-sm mt-1">${esc(t.desc)}</p>${dueTag(t, s)}</div>${s ? `<button onclick="viewProof('${s.id}')" class="btn2 shrink-0 text-green-400 text-sm">✓ Submitted${s.score != null ? ' · ' + s.score + '/100' : ' · awaiting grade'}</button>` : `<button onclick="submitTask('${t.id}')" class="btn shrink-0 text-sm">Submit proof</button>`}</div>` }).join('') || '<p class="text-white/40">No tasks yet.</p>'}</div>
+  <h3 class="text-xl font-bold mb-3">Materials</h3><div class="space-y-3">${ms.map(m => { const d = (u.done || []).includes(m.id); return `<div class="card !p-5 flex justify-between items-start gap-4"><div><h4 class="font-bold">${esc(m.title)}</h4><p class="text-white/60 text-sm mt-1">${esc(m.desc)}</p><a href="${url(m.link)}" target="_blank" rel="noopener" class="text-purple-400 text-sm inline-block mt-2">Open resource →</a></div><button onclick="complete('${m.id}')" class="shrink-0 px-4 py-2 rounded-full text-sm font-semibold ${d ? 'bg-green-500/20 text-green-400' : 'bg-white/10'}">${d ? '✓ Completed' : 'Mark complete'}</button></div>` }).join('') || '<p class="text-white/40">No materials yet.</p>'}</div></div>`;
+    }
+    function tutorV(u) {
+      const studs = db.users, subs = [...db.subs].sort((a, b) => b.date - a.date);
+      return `<div class="max-w-6xl mx-auto p-6"><div class="card flex items-center gap-4 mb-6">${av(u, 64)}<div><h2 class="text-2xl font-bold">${esc(u.name)}</h2><p class="text-white/50 text-sm">Tutor · ${u.id} · ${esc(u.course)}</p></div></div>
+  <div class="grid lg:grid-cols-2 gap-6"><div class="card"><h3 class="font-bold mb-3">Upload material (${esc(u.course)})</h3><input id="m_t" class="inp" placeholder="Title"><textarea id="m_d" class="inp" rows="2" placeholder="Description"></textarea><input id="m_l" class="inp" placeholder="Link (YouTube, Drive, GitHub)"><button onclick="addItem('m')" class="btn w-full">Upload</button>
+  <h3 class="font-bold mt-6 mb-3">Assign task</h3><input id="t_t" class="inp" placeholder="Task title"><textarea id="t_d" class="inp" rows="2" placeholder="Instructions"></textarea><label class="text-xs text-white/50">Due date (optional)</label><input id="t_due" type="date" class="inp"><button onclick="addItem('t')" class="btn w-full">Assign task</button>${annForm(false)}${classForm()}${myUploads(u)}</div>
+  <div class="space-y-6"><div class="card overflow-x-auto"><h3 class="font-bold mb-3">My ${esc(u.course)} students (${studs.length})</h3><table class="w-full text-sm text-left"><thead class="text-white/40"><tr><th class="py-2 pr-3"></th><th class="pr-3">Name</th><th class="pr-3">Payment</th><th>Progress</th></tr></thead><tbody>${studs.map(s => `<tr class="border-t border-white/5"><td class="py-2 pr-3">${av(s, 28)}</td><td class="pr-3">${esc(s.name)}<br><span class="text-xs text-white/40">${s.id}</span></td><td class="pr-3">${badge(!!payment(s), 'Paid', 'Unpaid')}</td><td>${prog(s).pct}%${s.cert ? ' 🎓' : ''}</td></tr>`).join('') || '<tr><td colspan=4 class="py-6 text-center text-white/40">No students in your course yet.</td></tr>'}</tbody></table></div>
+  ${attCard(studs)}${chatCard()}<div class="card"><h3 class="font-bold mb-3">Submissions (${subs.length})</h3><div class="space-y-2 max-h-72 overflow-y-auto">${subs.map(s => `<div class="flex justify-between items-center text-sm border-b border-white/5 pb-2"><span>${esc(studs.find(x => x.uid === s.uid)?.name)} — ${esc(db.tasks.find(t => t.id === s.taskId)?.title)}</span><span class="whitespace-nowrap"><button class="text-purple-400" onclick="viewProof('${s.id}')">View</button> <button class="text-green-400 ml-2" onclick="grade('${s.id}')">${s.score != null ? s.score + '/100 ✎' : 'Grade'}</button></span></div>`).join('') || '<p class="text-white/40 text-sm">Nothing submitted yet.</p>'}</div></div></div></div></div>`;
+    }
+    function adminV(u) {
+      const us = db.users, st = us.filter(x => x.role === 'student'), stat = (n, l) => `<div class="card !p-4 text-center"><p class="text-3xl font-bold">${n}</p><p class="text-white/50 text-xs">${l}</p></div>`;
+      return `<div class="max-w-6xl mx-auto p-6"><div class="card flex items-center gap-4 mb-6">${av(u, 64)}<div><h2 class="text-2xl font-bold">Admin Dashboard</h2><p class="text-white/50 text-sm">${esc(u.name)} · ${u.id}</p></div></div>
+  <div class="grid grid-cols-2 md:grid-cols-6 gap-3 mb-6">${stat(st.length, 'Students')}${stat(us.filter(x => x.role === 'tutor').length, 'Tutors')}${stat(st.filter(payment).length, 'Paid students')}${stat('₦' + (st.filter(payment).length * PRICE).toLocaleString(), 'Revenue')}${stat(db.subs.length, 'Submissions')}${stat(st.filter(x => x.cert).length, 'Certified')}</div>
+  <div class="grid lg:grid-cols-2 gap-6 mb-6"><div class="card">${annForm(true)}</div><div class="card"><h3 class="font-bold mb-3">Recent announcements</h3><div class="space-y-2">${annList()}</div><button onclick="exportCSV()" class="btn2 mt-4 text-sm">⬇ Export students (CSV)</button></div></div><div class="grid lg:grid-cols-2 gap-6"><div class="card overflow-x-auto"><h3 class="font-bold mb-3">All users</h3><table class="w-full text-sm text-left"><thead class="text-white/40"><tr><th class="py-2 pr-2"></th><th class="pr-3">Name</th><th class="pr-3">Role</th><th class="pr-3">Course</th><th>Progress</th><th>Attend.</th><th></th></tr></thead><tbody>${us.map(x => `<tr class="border-t border-white/5"><td class="py-2 pr-2">${av(x, 28)}</td><td class="pr-3">${esc(x.name)}<br><span class="text-xs text-white/40">${esc(x.email)}</span></td><td class="pr-3 capitalize">${x.role}</td><td class="pr-3">${esc(x.course || '—')}</td><td>${x.role === 'student' ? prog(x).pct + '%' + (payment(x) ? '' : ' (unpaid)') : '—'}</td><td>${x.role === 'student' ? (attRate(x) ?? '—') + (attRate(x) == null ? '' : '%') : ''}</td><td>${x.role !== 'admin' ? `<button class="text-xs ${x.active === false ? 'text-green-400' : 'text-red-400'}" onclick="toggleActive('${x.uid}', ${x.active === false})">${x.active === false ? 'Activate' : 'Suspend'}</button>` : ''}</td></tr>`).join('')}</tbody></table></div>
+  <div class="card"><h3 class="font-bold mb-3">Activity log (all tutors &amp; students)</h3><div class="space-y-2 max-h-[32rem] overflow-y-auto">${db.log.map(l => `<div class="text-sm border-b border-white/5 pb-2"><span class="font-semibold">${esc(l.name)}</span> <span class="text-xs px-2 rounded-full bg-white/10">${esc(l.role)}</span> ${esc(l.action)}<br><span class="text-xs text-white/40">${fmt(l.t)}</span></div>`).join('') || '<p class="text-white/40 text-sm">No activity yet.</p>'}</div></div></div></div>`;
+    }
+    function render(force) {
+      const a = document.activeElement; if (!force && a && /INPUT|TEXTAREA/.test(a.tagName) && $('main').contains(a)) return;
+      const u = db.me; $('nav').innerHTML = navHtml(u);
+      $('main').innerHTML = !au.currentUser ? landing() : !u ? '<p class="text-center text-white/50 py-20">Loading... Wait </p>' : u.active === false ? '<p class="text-center text-red-400 py-20">Your Account has been suspended. Pls contact the Admin.</p>' : u.role === 'admin' ? adminV(u) : u.role === 'tutor' ? tutorV(u) : studentV(u);
+      if (u?.role === 'student' && payment(u)) checkCert(u);
+    }
+    window.addEventListener('unhandledrejection', e => Swal.fire('Something went wrong', String(e.reason?.message || 'Please try again.'), 'error'));
+    Object.assign(window, { openAuth, closeAuth, setRole, auth, googleAuth, logout, profile, pay, complete, submitTask, viewProof, addItem, showCert, resetPw, postAnn, postClass, markAtt, setAttDate, grade, toggleActive, exportCSV, sendMsg, delItem, verifyCert });
+    render();
+  </script>
+</body>
+
+</html>

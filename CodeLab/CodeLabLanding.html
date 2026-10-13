@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta http-equiv="refresh" content="0; url= https://codelabtts.netlify.app" />
+</head>
+<style>
+    * {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        font-variant: small-caps;
+        color: white;
+    }
+
+    .Loader {
+        animation: loader 10s 0s infinite normal both;
+        border: 2px solid white;
+        height: 60px;
+        width: 60px;
+        border-radius: 50%;
+        border-top-color: rgb(255, 0, 0);
+        border-bottom-color: rgb(255, 0, 0);
+
+    }
+
+    @keyframes loader {
+        to {
+            transform: rotate(960deg);
+            border-bottom-color: red;
+                    border-top-color: red ;
+
+
+        }
+    }
+
+    .Holder {
+        justify-content: center;
+        justify-self: center;
+        margin: 20%;
+    }
+</style>
+
+<body style="background: black;">
+    <div class="Holder">
+        <div class="Loader">
+
+        </div>
+        <p>Fecthing Codelab ....</p>
+    </div>
+
+</html>

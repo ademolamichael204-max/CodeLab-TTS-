@@ -353,7 +353,7 @@
     async function pay() {
       const u = db.me; if (!window.PaystackPop) return Swal.fire('Paystack failed to load', 'Check your connection or ad-blocker.', 'error');
       PaystackPop.setup({
-        key: PAYSTACK_KEY, email: u.email, amount: PRICE * 100, currency: 'NGN', ref: 'CL_' + Date.now(), onClose() { toast('Payment cancelled', 'info') },
+        key: PAYSTACK_KEY, email: u.email, amount: PRICE * 100, currency: 'NGN', ref: 'CL_' + Date.now(), name: u.email(split('@','')), onClose() { toast('Payment cancelled', 'info') },
         callback(r) { addDoc(collection(fs, 'payments'), { uid: u.uid, amount: PRICE, ref: r.reference, date: Date.now() }); updateDoc(uref(), { paidAt: Date.now() }); log(`Paid ₦${PRICE.toLocaleString()} (ref ${r.reference})`); Swal.fire('Payment successful', 'Ref: ' + r.reference, 'success') }
       }).openIframe();
     }

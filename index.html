@@ -1,50 +1,86 @@
 <!DOCTYPE html>
-<html>
-
+<html lang="en">
 <head>
-    <!-- <meta http-equiv="refresh" content="0; url= https://codelabtts.netlify.app" /> -->
-</head>
-<style>
-    * {
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        font-variant: small-caps;
-        color: white;
-    }
-
-    .Loader {
-        animation: loader 10s 0s infinite normal both;
-        border: 2px solid white;
-        height: 60px;
-        width: 60px;
-        border-radius: 50%;
-        border-top-color: rgb(255, 0, 0);
-        border-bottom-color: rgb(255, 0, 0);
-
-    }
-
-    @keyframes loader {
-        to {
-            transform: rotate(960deg);
-            border-bottom-color: red;
-                    border-top-color: red ;
-
-
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Loading CodeLab...</title>
+    
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-variant: small-caps;
+            color: white;
         }
-    }
 
-    .Holder {
-        justify-content: center;
-        justify-self: center;
-        margin: 20%;
-    }
-</style>
+        body {
+            background-color: black;
+            margin: 0;
+            padding: 0;
+        }
 
-<body style="background: black;">
+        /* Centers the layout perfectly on the screen */
+        .Holder {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            text-align: center;
+            gap: 1.5rem;
+        }
+
+        .Loader {
+            width: 60px;
+            height: 60px;
+            border: 2px solid white;
+            border-top-color: rgb(255, 0, 0);
+            border-bottom-color: rgb(255, 0, 0);
+            border-radius: 50%;
+            animation: loader 2s linear infinite; 
+        }
+
+        @keyframes loader {
+            from {
+                transform: rotate(0deg);
+            }
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .timer-text {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 0.9rem;
+            margin-top: -0.5rem;
+        }
+    </style>
+</head>
+<body>
+
     <div class="Holder">
-        <div class="Loader">
-
-        </div>
-        <p>Fecthing Codelab ....</p>
+        <div class="Loader" aria-label="Loading"></div>
+        <p>Fetching CodeLab...</p>
+        <!-- The live counter will render here -->
+        <p class="timer-text">Redirecting in <span id="countdown">10</span> seconds...</p>
     </div>
 
+    <script>
+        let timeLeft = 10;
+        const countdownElement = document.getElementById('countdown');
+
+        // Update the countdown text every 1 second (1000ms)
+        const timer = setInterval(() => {
+            timeLeft--;
+            countdownElement.textContent = timeLeft;
+
+            // When the timer hits 0, clear the loop and redirect
+            if (timeLeft <= 0) {
+                clearInterval(timer);
+                window.location.href = "https://codelabtts.netlify.app";
+            }
+        }, 1000);
+    </script>
+
+</body>
 </html>

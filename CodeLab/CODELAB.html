@@ -638,7 +638,7 @@
     }
     function render(force) {
       const a = document.activeElement; if (!force && a && /INPUT|TEXTAREA/.test(a.tagName) && $('main').contains(a)) return;
-      const u = db.me; $('nav').innerHTML = navHtml(u);
+      // const u = db.me; $('nav').innerHTML = navHtml(u);
       $('main').innerHTML = !au.currentUser ? landing() : !u ? '<p class="text-center text-white/50 py-20">Loading... Wait </p>' : u.active === false ? '<p class="text-center text-red-400 py-20">Your Account has been suspended. Pls contact the Admin.</p>' : u.role === 'admin' ? adminV(u) : u.role === 'tutor' ? tutorV(u) : studentV(u);
       if (u?.role === 'student' && payment(u)) checkCert(u);
     }

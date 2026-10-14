@@ -437,7 +437,8 @@
       }
       let cred; try { cred = await signInWithPopup(au, googleProvider) } catch (e) { return aerr('Google sign-in failed: ' + e.message) }
       const existing = await getDoc(doc(fs, 'users', cred.user.uid));
-      if (existing.exists()) { log('Logged in', existing.data()); toast('Welcome back, ' + existing.data().name + '!'); closeAuth(); return }
+      if (existing.exists()) { log('Logged in', existing.data()); toast('Welcome back, ' + existing.data().name + + u.id + '!'); closeAuth(); return }
+      if (existing.exists(u.id)) { log('Logged in', existing.data()); toast('Welcome back, ' + existing.data().name + + u.id + '!'); closeAuth(); return }
       if (A.mode === 'login') { aerr('No CodeLab account for this Google account yet. Switch to Sign Up.'); return }
       const guessedName = cred.user.displayName || (cred.user.email ? cred.user.email.split('@')[0] : 'Student');
       const u = { uid: cred.user.uid, id: (role === 'admin' ? 'CLA-' : role === 'tutor' ? 'CLM-' : 'CLS-') + Math.floor(1e5 + Math.random() * 9e5), name: guessedName, email: cred.user.email, role, course: role === 'admin' ? null : course, joined: Date.now(), done: [], avatar: cred.user.photoURL || null, cert: null, paidAt: null, active: true };
